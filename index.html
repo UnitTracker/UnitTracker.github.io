@@ -1,0 +1,1191 @@
+<!doctype html>
+<html lang="en" data-theme="light">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Loaner Unit Tracker</title>
+<script>/* anti-flash theme */try{var t=localStorage.getItem('unittracker_theme');if(t)document.documentElement.setAttribute('data-theme',t);}catch(e){}</script>
+<style>
+:root{
+  --bg:#f4f6f9; --panel:#ffffff; --panel2:#f8fafc; --ink:#0f172a; --muted:#64748b;
+  --line:#e2e8f0; --line2:#eef2f7; --accent:#2563eb; --accent-ink:#ffffff;
+  --ok:#16a34a; --okbg:#dcfce7; --warn:#d97706; --warnbg:#fef3c7; --bad:#dc2626; --badbg:#fee2e2;
+  --lt:#7c3aed; --ltbg:#ede9fe; --info:#1d4ed8; --infobg:#dbeafe;
+  --chip:#eef2f7; --shadow:0 1px 2px rgba(15,23,42,.06),0 4px 16px rgba(15,23,42,.06);
+  --radius:14px;
+}
+:root[data-theme="dark"]{
+  --bg:#0b1120; --panel:#111827; --panel2:#0f1626; --ink:#e5edf7; --muted:#94a3b8;
+  --line:#1f2a3c; --line2:#18212f; --accent:#3b82f6; --accent-ink:#ffffff;
+  --ok:#4ade80; --okbg:#0f2f1c; --warn:#fbbf24; --warnbg:#3a2c07; --bad:#f87171; --badbg:#3a1414;
+  --lt:#a78bfa; --ltbg:#241a45; --info:#93c5fd; --infobg:#0e2a52;
+  --chip:#18212f; --shadow:0 1px 2px rgba(0,0,0,.4),0 6px 20px rgba(0,0,0,.35);
+}
+*{box-sizing:border-box}
+html,body{margin:0}
+body{background:var(--bg);color:var(--ink);font:15px/1.45 system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;-webkit-text-size-adjust:100%}
+.wrap{max-width:1240px;margin:0 auto;padding:14px}
+header{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:10px}
+header h1{font-size:19px;margin:0;font-weight:750;letter-spacing:-.2px;flex:1;min-width:170px}
+.icon-btn{border:1px solid var(--line);background:var(--panel);color:var(--ink);width:38px;height:38px;border-radius:10px;font-size:16px;cursor:pointer;display:inline-flex;align-items:center;justify-content:center}
+.icon-btn:hover{border-color:var(--accent)}
+.livepill{font-size:12px;font-weight:650;padding:6px 10px;border-radius:999px;border:1px solid var(--line);color:var(--muted);white-space:nowrap;display:inline-flex;align-items:center;gap:6px}
+.livepill .dot{width:8px;height:8px;border-radius:50%;background:#94a3b8}
+.livepill.on .dot{background:var(--ok)}
+.livepill.err .dot{background:var(--bad)}
+
+/* stats */
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(112px,1fr));gap:8px;margin-bottom:12px}
+.stat{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:10px 12px;box-shadow:var(--shadow)}
+.stat b{display:block;font-size:22px;font-weight:800;letter-spacing:-.5px;line-height:1.1}
+.stat span{font-size:11.5px;color:var(--muted);text-transform:uppercase;letter-spacing:.4px;font-weight:650}
+.stat.bad b{color:var(--bad)}
+
+/* tabs */
+nav.tabs{display:flex;gap:6px;background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:5px;margin-bottom:12px;overflow:auto}
+nav.tabs button{flex:1;min-width:104px;border:0;background:transparent;color:var(--muted);font-weight:650;font-size:14px;padding:9px 10px;border-radius:8px;cursor:pointer;white-space:nowrap}
+nav.tabs button.active{background:var(--accent);color:var(--accent-ink)}
+
+.panel{background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);padding:14px}
+.toolbar{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:12px}
+.toolbar .grow{flex:1;min-width:150px}
+input,select,textarea{font:inherit;color:var(--ink);background:var(--panel2);border:1px solid var(--line);border-radius:9px;padding:9px 11px;width:100%;outline:none}
+input:focus,select:focus,textarea:focus{border-color:var(--accent)}
+textarea{resize:vertical;min-height:64px}
+.btn{border:1px solid var(--accent);background:var(--accent);color:var(--accent-ink);font-weight:650;padding:9px 14px;border-radius:9px;cursor:pointer;white-space:nowrap}
+.btn:hover{filter:brightness(1.05)}
+.btn.ghost{background:transparent;color:var(--ink);border-color:var(--line)}
+.btn.ghost:hover{border-color:var(--accent)}
+.btn.sm{padding:6px 10px;font-size:13px;border-radius:8px}
+.btn.danger{background:transparent;border-color:var(--bad);color:var(--bad)}
+.btn.warn{background:transparent;border-color:var(--warn);color:var(--warn)}
+.btn.ok{background:var(--ok);border-color:var(--ok)}
+.btn.lt{background:transparent;border-color:var(--lt);color:var(--lt)}
+.btn.info{background:var(--infobg);color:var(--info);border-color:var(--info)}
+.checkline{display:inline-flex;align-items:center;gap:7px;font-weight:600;color:var(--muted);white-space:nowrap}
+.checkline input{width:auto}
+
+/* table */
+.tablewrap{overflow:auto;border:1px solid var(--line);border-radius:12px}
+table{border-collapse:collapse;width:100%;font-size:13.5px}
+th,td{text-align:left;padding:9px 11px;border-bottom:1px solid var(--line2);white-space:nowrap;vertical-align:top}
+th{position:sticky;top:0;background:var(--panel2);color:var(--muted);font-size:11.5px;text-transform:uppercase;letter-spacing:.4px;z-index:1}
+tbody tr:hover{background:var(--panel2)}
+td.wrap-cell{white-space:normal;min-width:170px;max-width:300px}
+td.name{white-space:normal;word-break:break-word;max-width:210px;min-width:90px}
+td.acts{white-space:nowrap}
+.empty{text-align:center;color:var(--muted);padding:34px 10px}
+.t-all{min-width:940px}
+
+.tags{display:flex;flex-wrap:wrap;gap:4px}
+.badge{display:inline-block;font-size:11px;font-weight:700;padding:2px 8px;border-radius:999px;letter-spacing:.2px}
+.badge.acct{background:var(--okbg);color:var(--ok)}
+.badge.ext{background:var(--chip);color:var(--muted)}
+.badge.out{background:var(--warnbg);color:var(--warn)}
+.badge.in{background:var(--okbg);color:var(--ok)}
+.badge.lt{background:var(--ltbg);color:var(--lt)}
+.badge.tfs{background:var(--ltbg);color:var(--lt)}
+.badge.us{background:var(--infobg);color:var(--info)}
+.days{font-weight:800;padding:2px 9px;border-radius:999px;display:inline-block;text-align:center;min-width:44px}
+.days.g{background:var(--okbg);color:var(--ok)}
+.days.a{background:var(--warnbg);color:var(--warn)}
+.days.r{background:var(--badbg);color:var(--bad)}
+.mono{font-variant-numeric:tabular-nums}
+.rowacts{text-align:right;white-space:nowrap;display:flex;gap:5px;justify-content:flex-end;flex-wrap:wrap}
+
+/* modal */
+.overlay{position:fixed;inset:0;background:rgba(2,6,23,.55);display:none;align-items:flex-start;justify-content:center;padding:20px;z-index:50;overflow:auto}
+.overlay.show{display:flex}
+.modal{background:var(--panel);border:1px solid var(--line);border-radius:16px;box-shadow:var(--shadow);width:100%;max-width:560px;padding:18px}
+.modal h3{margin:0 0 3px;font-size:17px}
+.modal .sub{color:var(--muted);font-size:13px;margin-bottom:14px}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.field{margin-bottom:10px}
+.field label{display:block;font-size:12px;font-weight:650;color:var(--muted);margin-bottom:4px}
+.field .hint{font-size:11px;color:var(--muted);font-weight:400}
+.modal-actions{display:flex;gap:8px;justify-content:flex-end;margin-top:8px}
+.savenote{position:fixed;left:50%;bottom:18px;transform:translateX(-50%) translateY(20px);background:var(--ink);color:var(--bg);padding:9px 16px;border-radius:999px;font-size:13px;font-weight:650;opacity:0;transition:.25s;pointer-events:none;z-index:60}
+.savenote.show{opacity:1;transform:translateX(-50%) translateY(0)}
+footer{text-align:center;color:var(--muted);font-size:12px;padding:18px 0 8px}
+
+/* help / instructions */
+.help{max-width:840px}
+.help h2{font-size:15.5px;margin:24px 0 10px;padding-bottom:6px;border-bottom:1px solid var(--line);letter-spacing:-.2px}
+.help h2:first-child{margin-top:2px}
+.help p{margin:0 0 10px}
+.help .lead{color:var(--muted)}
+.help ol,.help ul{margin:0 0 12px;padding-left:22px}
+.help li{margin:5px 0}
+.help .card{background:var(--panel2);border:1px solid var(--line);border-radius:12px;padding:12px 14px;margin:0 0 10px}
+.help .card h3{margin:0 0 5px;font-size:14px}
+.help .card p{margin:0}
+.help .grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-bottom:6px}
+.help .callout{border-left:3px solid var(--accent);background:var(--panel2);border-radius:0 10px 10px 0;padding:10px 14px;margin:2px 0 12px}
+.help .callout.warn{border-left-color:var(--warn)}
+.help kbd{background:var(--chip);border:1px solid var(--line);border-radius:6px;padding:1px 7px;font:inherit;font-weight:650;font-size:12.5px;white-space:nowrap}
+.help code{font-family:ui-monospace,Consolas,monospace;background:var(--chip);padding:1px 5px;border-radius:5px;font-size:12.5px}
+.help .tag{display:inline-block;font-weight:700;font-size:11px;padding:2px 9px;border-radius:999px;background:var(--chip);color:var(--muted);vertical-align:middle}
+@media(max-width:640px){ .help .grid{grid-template-columns:1fr} }
+
+@media(max-width:720px){
+  .grid2{grid-template-columns:1fr}
+  header h1{font-size:17px}
+}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>📦 Loaner Unit Tracker</h1>
+    <span class="livepill on" id="filePill"><span class="dot"></span><span id="fileTxt">Saved on this laptop</span></span>
+    <button class="icon-btn" id="dataBtn" title="Backup &amp; data file">📂</button>
+    <button class="icon-btn" id="themeBtn" title="Toggle theme">☾</button>
+  </header>
+
+  <div class="stats" id="stats"></div>
+
+  <nav class="tabs">
+    <button data-tab="all" class="active">All Units</button>
+    <button data-tab="out">Out on Loan</button>
+    <button data-tab="longterm">Long-Term</button>
+    <button data-tab="tfs">TFS Support</button>
+    <button data-tab="returned">Returned</button>
+    <button data-tab="help">❓ Help</button>
+  </nav>
+
+  <!-- ALL UNITS -->
+  <section id="tab-all" class="panel">
+    <div class="toolbar">
+      <input class="grow" id="allSearch" placeholder="Search model, serial, customer, manager…">
+      <label class="checkline"><input type="checkbox" id="fAccount"> On account</label>
+      <label class="checkline"><input type="checkbox" id="fTFS"> TFS</label>
+      <label class="checkline"><input type="checkbox" id="fFromUS"> US→CA</label>
+      <select id="fStatus" style="width:auto"><option value="">All placements</option><option value="in">In-house</option><option value="out">Out (short-term)</option><option value="longterm">Long-term</option></select>
+      <button class="btn ghost sm" id="exportAll">⬇ CSV</button>
+      <button class="btn" id="addUnitBtn">＋ Add Unit</button>
+    </div>
+    <div class="tablewrap">
+      <table class="t-all">
+        <thead><tr>
+          <th>Model</th><th>Serial #</th><th>Tags</th><th>Placement</th><th>Account Mgr</th><th>Requests</th><th style="text-align:right">Actions</th>
+        </tr></thead>
+        <tbody id="allBody"></tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- OUT (short-term) -->
+  <section id="tab-out" class="panel hide">
+    <div class="toolbar">
+      <input class="grow" id="outSearch" placeholder="Search model, serial, customer, waybill…">
+      <label class="checkline"><input type="checkbox" id="fOverdue"> Overdue only</label>
+      <button class="btn ghost sm" id="exportOut">⬇ CSV</button>
+    </div>
+    <div class="tablewrap">
+      <table>
+        <thead><tr>
+          <th>Model</th><th>Serial #</th><th>Customer</th><th>Account Mgr</th><th>Left Office</th><th>Courier</th><th>Waybill #</th>
+          <th>Loan Start</th><th>Expiry</th><th>Days Left</th><th>Requests</th><th>Comments</th><th style="text-align:right">Action</th>
+        </tr></thead>
+        <tbody id="outBody"></tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- LONG-TERM -->
+  <section id="tab-longterm" class="panel hide">
+    <div class="toolbar">
+      <input class="grow" id="ltSearch" placeholder="Search model, serial, holder, manager, notes…">
+      <button class="btn ghost sm" id="manageMgrBtn">⚙ Account Managers</button>
+      <button class="btn ghost sm" id="exportLong">⬇ CSV</button>
+    </div>
+    <div class="tablewrap">
+      <table>
+        <thead><tr>
+          <th>Model</th><th>Serial #</th><th>Holder / Who has it</th><th>Type</th><th>Account Mgr</th><th>Since</th><th>Notes</th><th style="text-align:right">Action</th>
+        </tr></thead>
+        <tbody id="ltBody"></tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- TFS SUPPORT -->
+  <section id="tab-tfs" class="panel hide">
+    <div class="toolbar">
+      <input class="grow" id="tfsSearch" placeholder="Search model, serial…">
+      <button class="btn ghost sm" id="exportTFS">⬇ CSV</button>
+    </div>
+    <p class="lead" style="color:var(--muted);margin:0 0 12px;font-size:13px">TFS Support is a <b>tag</b> — a unit can be a TFS Support unit and still be in-house, out on a short-term loan, or on a long-term loan. Set the tag in a unit’s <b>Edit</b> screen on the All Units tab.</p>
+    <div class="tablewrap">
+      <table>
+        <thead><tr>
+          <th>Model</th><th>Serial #</th><th>Current Placement</th><th>Account Mgr</th><th>On Account</th><th style="text-align:right">Action</th>
+        </tr></thead>
+        <tbody id="tfsBody"></tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- RETURNED -->
+  <section id="tab-returned" class="panel hide">
+    <div class="toolbar">
+      <input class="grow" id="retSearch" placeholder="Search model, serial, customer, waybill, service order, note…">
+      <button class="btn ghost sm" id="exportRet">⬇ CSV</button>
+    </div>
+    <div class="tablewrap">
+      <table>
+        <thead><tr>
+          <th>Model</th><th>Serial #</th><th>Customer</th><th>Left Office</th><th>Courier</th>
+          <th>Out Waybill #</th><th>In Waybill #</th><th>Returned</th><th>Service Order #</th><th>Note</th><th style="text-align:right"></th>
+        </tr></thead>
+        <tbody id="retBody"></tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- HELP -->
+  <section id="tab-help" class="panel hide">
+    <div class="help">
+      <h2>What this is</h2>
+      <p class="lead">A loaner-unit tracker that runs entirely on this computer — no internet, no accounts, nothing in the cloud. Your information is saved automatically on this laptop and never leaves it. <span class="tag">Version 3.1</span></p>
+
+      <h2>The tabs</h2>
+      <div class="grid">
+        <div class="card"><h3>All Units</h3><p class="lead">The complete master list of every device. Nothing ever leaves it — the other tabs are just filtered views. Add units, tag them, set where each one is, and reserve future loans.</p></div>
+        <div class="card"><h3>Out on Loan</h3><p class="lead">Short-term loans only, kept lean. Watch <b>Days Left</b> for what’s due soon or overdue.</p></div>
+        <div class="card"><h3>Long-Term</h3><p class="lead">Permanent / long-term loans, with the holder, the responsible account manager, and a since-date.</p></div>
+        <div class="card"><h3>TFS Support</h3><p class="lead">A <b>tag</b>, like “On account.” Any unit can be marked TFS and still be in-house, out, or long-term.</p></div>
+        <div class="card"><h3>Returned</h3><p class="lead">A history log of completed short-term loans, plus units removed from the master list (with the reason).</p></div>
+      </div>
+
+      <h2>Placement vs. tags</h2>
+      <p>Every unit has one <b>placement</b> — where it physically is right now — plus three independent <b>tags</b>:</p>
+      <ul>
+        <li><b>Placement</b> (one at a time): <span class="badge in">In-house</span> · <span class="badge out">Out (short-term)</span> · <span class="badge lt">Long-term</span></li>
+        <li><span class="badge acct">On account</span> — the unit is owned / registered to us.</li>
+        <li><span class="badge tfs">TFS</span> — flag it for the TFS Support view; works alongside any placement.</li>
+        <li><span class="badge us">US→CA</span> — the unit is on loan from the US into our (Canada) department.</li>
+      </ul>
+      <p>All three tags are set with the checkboxes in a unit’s <b>Add</b> / <b>Edit</b> screen.</p>
+
+      <h2>Everyday tasks</h2>
+      <div class="card">
+        <h3>➕ Add a unit</h3>
+        <p>On <b>All Units</b>, click <kbd>＋ Add Unit</kbd> → enter <b>Model</b> and <b>Serial Number</b> → tick any of <b>On account</b>, <b>TFS Support</b>, <b>From US → Canada</b> → <b>Save</b>. If a unit with the same model + serial already exists, you’ll get a warning first.</p>
+      </div>
+      <div class="card">
+        <h3>📤 Short-term loan</h3>
+        <p>On <b>All Units</b>, click <kbd>Loan Out</kbd>. Fill in the customer, the <b>Account Manager</b>, dates, courier and waybill → <b>Loan Out</b>. It appears on the <b>Out on Loan</b> tab.</p>
+      </div>
+      <div class="card">
+        <h3>📎 Long-term / permanent loan</h3>
+        <p>On <b>All Units</b>, click <kbd>Long-Term</kbd>. Set who has it, the type, the <b>Account Manager</b>, a since-date and notes. It appears on the <b>Long-Term</b> tab — not in Out on Loan.</p>
+      </div>
+      <div class="card">
+        <h3>📅 Reserve / request a loan</h3>
+        <p>In the <b>Requests</b> column on All Units (or Out on Loan), click <kbd>＋ Reserve</kbd>. Enter the <b>requested start date</b> and <b>days on loan</b>, plus customer / account manager / notes. You can reserve a unit even while it’s out on loan — as long as the dates don’t overlap. If they do, a warning pops up naming the conflict and lets you save anyway or change the dates. The button then shows how many requests a unit has and the next date.</p>
+      </div>
+      <div class="card">
+        <h3>📥 Return a short-term loan</h3>
+        <p>Click <kbd>Return</kbd> (on All Units or Out on Loan). Enter the <b>incoming waybill</b>, <b>date of return</b>, and <b>service order #</b> → <b>Confirm Return</b>. It moves to <b>Returned</b>. (For long-term, use <kbd>End</kbd> to send it back to in-house.)</p>
+      </div>
+      <div class="card">
+        <h3>🗑 Delete a unit — two ways</h3>
+        <p>Click <kbd>✕</kbd> on a unit and choose: <b>Delete everything</b> (unit + all history, permanent), or <b>Remove from master list but keep its history in Returned</b> — with a <b>reason</b> box (e.g. “sold”, “customer keeping unit”). The reason shows on the kept records in the Returned tab.</p>
+      </div>
+      <div class="callout">
+        <b>Days Left colours:</b> <span style="color:var(--ok);font-weight:700">green</span> = plenty of time · <span style="color:var(--warn);font-weight:700">amber</span> = due within 3 days · <span style="color:var(--bad);font-weight:700">red</span> = overdue. Most overdue at the top. All dates read like <b>Aug 18, 2026</b>.
+      </div>
+
+      <h2>👤 Account Managers</h2>
+      <p>The account-manager dropdown (Rosemary Sonsini, Richard Bourbonniere, Jim Seto, Mo Russell, Errol Bailey, Martin Lindsay, Terry Irvin, Lauren Padua, Simon Wong, Shajal Jamal, Vanessa Wong) is fully editable. On the <b>Long-Term</b> tab click <kbd>⚙ Account Managers</kbd> to add, rename, or remove names. Existing loans keep whatever name you picked at the time.</p>
+      <p>Every tab has a <b>search box</b> and a <kbd>⬇ CSV</kbd> button that exports what you see to a spreadsheet.</p>
+
+      <h2>Where your data lives</h2>
+      <p>Two things are kept <b>separate</b>:</p>
+      <ul>
+        <li><b>The app</b> — the <code>index.html</code> file (the buttons and layout). This is the only thing that changes when you get an update.</li>
+        <li><b>Your data</b> — the units, loans, requests and account-manager list. Saved automatically on this laptop, and (if you set it up) in a <b>backup file</b> you control.</li>
+      </ul>
+      <p>Because they’re separate, replacing the app file does <b>not</b> erase your data.</p>
+
+      <h2>📂 Back up your data</h2>
+      <p>Click the <kbd>📂</kbd> button at the top-right. Two options:</p>
+      <ul>
+        <li><b>🔗 Link a backup file</b> — pick or create a file called <code>loaner-data.json</code> once; after that, every change is written into it automatically for the session. <i>Recommended.</i></li>
+        <li><b>💾 Save a backup copy</b> — save a one-time snapshot anytime.</li>
+      </ul>
+      <p>Keep that <code>loaner-data.json</code> somewhere safe — a USB drive or a synced folder. It protects you if the laptop ever fails, and it’s exactly what you’d hand to a colleague.</p>
+
+      <h2>⬆️ Apply an update (new version)</h2>
+      <ol>
+        <li>Open the app and <b>save a backup copy</b> first (📂 → Save a backup copy). Quick insurance.</li>
+        <li><b>Overwrite</b> your old <code>index.html</code> with the new one — <b>same folder, same filename</b>.</li>
+        <li><b>Reopen</b> the file. Your data should still be there.</li>
+        <li>If it looks empty, click <kbd>📂</kbd> → <b>Restore / import</b> → choose your <code>loaner-data.json</code>. Everything comes back.</li>
+      </ol>
+      <div class="callout warn"><b>The golden rule:</b> keep the app in the <b>same folder with the same name</b>, and always keep a recent backup file. Do that and you’ll never lose anything on an update.</div>
+
+      <h2>📥 Restore or move to another computer (upload)</h2>
+      <ol>
+        <li>Open <code>index.html</code> on that computer (Chrome or Edge).</li>
+        <li>Click <kbd>📂</kbd> → <b>Restore / import from a backup file</b>.</li>
+        <li>Choose your <code>loaner-data.json</code> file → confirm. All units and history appear.</li>
+      </ol>
+      <div class="callout warn">Importing <b>replaces</b> whatever is currently on screen with the file’s contents — so only do it when you want the file’s data to take over.</div>
+
+      <h2>🔒 Security &amp; good habits</h2>
+      <ul>
+        <li>Your real protection is your <b>Windows login</b> and <b>BitLocker</b> drive encryption — keep both on.</li>
+        <li>The backup <code>loaner-data.json</code> is plain readable text, so treat that file and any USB like a confidential document.</li>
+        <li>Keep the app in one place, and save a backup regularly (e.g. weekly, or after a busy day).</li>
+      </ul>
+    </div>
+  </section>
+
+  <footer id="footer">Loaner Unit Tracker · v3.1 · runs entirely on this computer · no internet required</footer>
+</div>
+
+<!-- Add / Edit unit modal -->
+<div class="overlay" id="unitOverlay">
+  <div class="modal">
+    <h3 id="unitTitle">Add Unit</h3>
+    <div class="sub">A unit is one physical device, tracked by its serial number.</div>
+    <div class="grid2">
+      <div class="field"><label>Model</label><input id="u_model" placeholder="e.g. Acme X200"></div>
+      <div class="field"><label>Serial Number</label><input id="u_serial" placeholder="e.g. SN-00A12"></div>
+    </div>
+    <div class="field"><label class="checkline"><input type="checkbox" id="u_account"> On our account (owned / registered to us)</label></div>
+    <div class="field"><label class="checkline"><input type="checkbox" id="u_tfs"> TFS Support unit</label></div>
+    <div class="field"><label class="checkline"><input type="checkbox" id="u_us"> On loan from the US → Canada (our department)</label></div>
+    <div class="modal-actions">
+      <button class="btn ghost" data-close>Cancel</button>
+      <button class="btn" id="u_save">Save</button>
+    </div>
+  </div>
+</div>
+
+<!-- Loan out (short-term) modal -->
+<div class="overlay" id="loanOverlay">
+  <div class="modal">
+    <h3>Short-Term Loan</h3>
+    <div class="sub" id="loanUnitLabel"></div>
+    <div class="grid2">
+      <div class="field"><label>Customer</label><input id="l_customer"></div>
+      <div class="field"><label>Account Manager</label><select id="l_manager"></select></div>
+      <div class="field"><label>Loan Start Date <span class="hint">(loan clock)</span></label><input id="l_start" type="date"></div>
+      <div class="field"><label>Loan Expiry Date</label><input id="l_expiry" type="date"></div>
+      <div class="field"><label>Date Left Office</label><input id="l_left" type="date"></div>
+      <div class="field"><label>Courier</label><select id="l_courier"><option value="">— select —</option><option>Purolator</option><option>FedEx</option><option>UPS</option><option>LTL</option><option>Customer</option></select></div>
+      <div class="field"><label>Outgoing Waybill #</label><input id="l_waybill"></div>
+    </div>
+    <div class="field"><label>Comments</label><textarea id="l_comments" placeholder="Optional notes…"></textarea></div>
+    <div class="modal-actions">
+      <button class="btn ghost" data-close>Cancel</button>
+      <button class="btn" id="l_save">Loan Out</button>
+    </div>
+  </div>
+</div>
+
+<!-- Long-term modal -->
+<div class="overlay" id="longtermOverlay">
+  <div class="modal">
+    <h3>Long-Term / Permanent Loan</h3>
+    <div class="sub" id="ltUnitLabel"></div>
+    <div class="field"><label>Holder / Who has it <span class="hint">(optional)</span></label><input id="lt_holder" placeholder="Person, site, or department"></div>
+    <div class="grid2">
+      <div class="field"><label>Type</label><select id="lt_type"><option>Long-term</option><option>Permanent</option></select></div>
+      <div class="field"><label>Account Manager</label><select id="lt_manager"></select></div>
+      <div class="field"><label>Since</label><input id="lt_since" type="date"></div>
+    </div>
+    <div class="field"><label>Notes</label><textarea id="lt_notes" placeholder="Optional notes…"></textarea></div>
+    <div class="modal-actions">
+      <button class="btn ghost" data-close>Cancel</button>
+      <button class="btn lt" id="lt_save">Set Long-Term</button>
+    </div>
+  </div>
+</div>
+
+<!-- Return modal -->
+<div class="overlay" id="returnOverlay">
+  <div class="modal">
+    <h3>Mark Returned</h3>
+    <div class="sub" id="returnUnitLabel"></div>
+    <div class="grid2">
+      <div class="field"><label>Incoming Waybill #</label><input id="r_waybill"></div>
+      <div class="field"><label>Date of Return</label><input id="r_date" type="date"></div>
+      <div class="field"><label>Service Order #</label><input id="r_service"></div>
+      <div class="field"><label>Courier <span class="hint">(if different)</span></label><select id="r_courier"><option value="">— select —</option><option>Purolator</option><option>FedEx</option><option>UPS</option><option>LTL</option><option>Customer</option></select></div>
+    </div>
+    <div class="modal-actions">
+      <button class="btn ghost" data-close>Cancel</button>
+      <button class="btn ok" id="r_save">Confirm Return</button>
+    </div>
+  </div>
+</div>
+
+<!-- Reserve / request modal -->
+<div class="overlay" id="reserveOverlay">
+  <div class="modal">
+    <h3>Loan Requests / Reservations</h3>
+    <div class="sub" id="reserveUnitLabel"></div>
+    <div id="reserveContext" style="background:var(--panel2);border:1px solid var(--line);border-radius:9px;padding:8px 11px;font-size:13px;margin-bottom:12px;color:var(--muted)"></div>
+    <div id="reserveList" style="margin-bottom:12px"></div>
+    <div style="border-top:1px solid var(--line);padding-top:12px">
+      <div style="font-weight:700;margin-bottom:8px">Add a request</div>
+      <div class="grid2">
+        <div class="field"><label>Requested start</label><input id="res_start" type="date"></div>
+        <div class="field"><label>Days on loan</label><input id="res_days" type="number" min="1" value="7"></div>
+        <div class="field"><label>Customer <span class="hint">(optional)</span></label><input id="res_customer"></div>
+        <div class="field"><label>Account Manager</label><select id="res_manager"></select></div>
+      </div>
+      <div class="field"><label>Notes <span class="hint">(optional)</span></label><textarea id="res_notes"></textarea></div>
+      <div class="hint" id="res_end" style="margin:0 0 10px;font-weight:650"></div>
+      <button class="btn info" id="res_add">Add request</button>
+    </div>
+    <div class="modal-actions">
+      <button class="btn ghost" data-close>Close</button>
+    </div>
+  </div>
+</div>
+
+<!-- Delete modal -->
+<div class="overlay" id="deleteOverlay">
+  <div class="modal">
+    <h3>Delete Unit</h3>
+    <div class="sub" id="deleteUnitLabel"></div>
+    <div class="field"><label class="checkline" style="align-items:flex-start;color:var(--ink);white-space:normal"><input type="radio" name="delmode" value="all" checked style="margin-top:3px"> <span>Delete the unit <b>and all of its loan history</b> — permanent, removes everything.</span></label></div>
+    <div class="field"><label class="checkline" style="align-items:flex-start;color:var(--ink);white-space:normal"><input type="radio" name="delmode" value="keep" style="margin-top:3px"> <span>Remove from the master list but <b>keep its history in the Returned tab</b>.</span></label></div>
+    <div class="field" id="delReasonWrap">
+      <label>Reason for removal <span class="hint">(shown in Returned — e.g. “sold”, “customer keeping unit”)</span></label>
+      <textarea id="del_reason" placeholder="Why is this unit being removed from the master list?"></textarea>
+    </div>
+    <div class="modal-actions">
+      <button class="btn ghost" data-close>Cancel</button>
+      <button class="btn" id="del_confirm" style="background:var(--bad);border-color:var(--bad);color:#fff">Delete</button>
+    </div>
+  </div>
+</div>
+
+<!-- Manage account managers modal -->
+<div class="overlay" id="manageMgrOverlay">
+  <div class="modal">
+    <h3>Account Managers</h3>
+    <div class="sub">These names fill the Account Manager dropdowns. Editing them here doesn’t change managers already saved on existing loans.</div>
+    <div id="mgrRows"></div>
+    <button class="btn ghost sm" id="mgrAdd" style="margin-top:2px">＋ Add manager</button>
+    <div class="modal-actions">
+      <button class="btn ghost" data-close>Cancel</button>
+      <button class="btn" id="mgr_save">Save list</button>
+    </div>
+  </div>
+</div>
+
+<!-- Data / backup modal -->
+<div class="overlay" id="dataOverlay">
+  <div class="modal">
+    <h3>Backup &amp; Data File</h3>
+    <div class="sub">Your data saves automatically on this laptop. A backup file lets you keep a copy on a USB drive, or hand it to a colleague to open on their computer.</div>
+    <div class="field" id="fileStateBox" style="background:var(--panel2);border:1px solid var(--line);border-radius:9px;padding:10px 12px;margin-bottom:14px">
+      <div id="fileStateTxt" style="font-weight:650">Saved on this laptop (browser storage)</div>
+      <div class="hint" id="fileStateSub">No backup file linked yet.</div>
+    </div>
+    <div class="field">
+      <button class="btn" id="linkFileBtn" style="width:100%">🔗 Link a backup file (auto-saves into it)</button>
+      <div class="hint" id="linkHint">Pick or create a file like <b>loaner-data.json</b>. Once linked, every change is written to it automatically this session.</div>
+    </div>
+    <div class="field">
+      <button class="btn ghost" id="saveCopyBtn" style="width:100%">💾 Save a backup copy…</button>
+      <div class="hint">Download a one-time copy — for a USB drive or to send to the backup person.</div>
+    </div>
+    <div class="field">
+      <button class="btn ghost" id="importBtn" style="width:100%">📥 Restore / import from a backup file…</button>
+      <div class="hint" style="color:var(--bad)">This replaces everything currently on screen with the file's contents.</div>
+    </div>
+    <input type="file" id="importInput" accept="application/json,.json" style="display:none">
+    <div class="modal-actions">
+      <button class="btn ghost" data-close>Close</button>
+    </div>
+  </div>
+</div>
+
+<div class="savenote" id="savenote">Saved</div>
+
+<script>
+/* ===== Loaner Unit Tracker — fully offline, single computer =====
+   No cloud, no server. Data auto-saves to this browser's local storage
+   and (optionally) to a real backup file you link via the 📂 menu. */
+
+const $=s=>document.querySelector(s);
+const $$=s=>document.querySelectorAll(s);
+const esc=s=>String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const LS_KEY="unittracker_data";
+const DEFAULT_MANAGERS=['Rosemary Sonsini','Richard Bourbonniere','Jim Seto','Mo Russell','Errol Bailey','Martin Lindsay','Terry Irvin','Lauren Padua','Simon Wong','Shajal Jamal','Vanessa Wong'];
+const MGR_SEED=1;          // bump when new default managers ship; triggers a one-time merge into existing saved lists
+const COURIERS=['Purolator','FedEx','UPS','LTL','Customer'];
+const MONTHS=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+let UNITS={};              // id -> unit
+let MANAGERS=[];           // account manager names (editable)
+let ARCHIVE=[];            // history records kept after a unit is removed from the master list
+let mgrSeedApplied=0;      // which MGR_SEED has been merged into the stored manager list
+let activeTab="all";
+let editingUnitId=null, loanUnitId=null, returnUnitId=null, ltUnitId=null, reserveUnitId=null, deleteUnitId=null;
+let fileHandle=null;       // linked backup file (File System Access API)
+const HAS_FSA = !!(window.showSaveFilePicker && window.showOpenFilePicker);
+
+/* unit shape:
+ { id, model, serial, onAccount:bool, tfs:bool, fromUS:bool, status:'in'|'out'|'longterm',
+   loan:{customer,manager,left,courier,waybill,start,expiry,comments}|null,
+   longterm:{holder,type,manager,since,notes}|null,
+   reservations:[ {id,start,days,customer,manager,notes} ],
+   history:[ {customer,manager,left,courier,waybill,inWaybill,returned,service,start,expiry,comments} ] }
+ archive record: {model,serial,customer,manager,left,courier,waybill,inWaybill,returned,service,start,expiry,comments,reason,archivedAt} */
+
+function uid(){ return 'u'+Date.now().toString(36)+Math.random().toString(36).slice(2,6); }
+function todayISO(){ const d=new Date(); const local=new Date(d.getTime()-d.getTimezoneOffset()*60000); return local.toISOString().slice(0,10); }
+function fmtDate(iso){ if(!iso) return '—'; const p=String(iso).split('-'); if(p.length!==3) return iso; const m=MONTHS[(+p[1])-1]; if(!m) return iso; return `${m} ${+p[2]}, ${p[0]}`; }
+function addDaysISO(iso,n){ const d=new Date(iso+'T00:00:00'); d.setDate(d.getDate()+(parseInt(n,10)||0)); const l=new Date(d.getTime()-d.getTimezoneOffset()*60000); return l.toISOString().slice(0,10); }
+function daysUntil(iso){ if(!iso) return null; const t=new Date(todayISO()+'T00:00:00'); const e=new Date(iso+'T00:00:00'); return Math.round((e-t)/86400000); }
+function overlaps(s1,e1,s2,e2){ return s1<=e2 && s2<=e1; }  // yyyy-mm-dd strings compare correctly
+function toast(m){ const n=$("#savenote"); n.textContent=m||'Saved'; n.classList.add('show'); clearTimeout(toast._t); toast._t=setTimeout(()=>n.classList.remove('show'),1400); }
+
+/* normalise older records so new fields always exist */
+function normalizeUnits(){
+  Object.values(UNITS).forEach(u=>{
+    if(u.tfs===undefined) u.tfs=false;
+    if(u.fromUS===undefined) u.fromUS=false;
+    if(u.longterm===undefined) u.longterm=null;
+    if(!Array.isArray(u.reservations)) u.reservations=[];
+    if(!Array.isArray(u.history)) u.history=[];
+    if(!u.status) u.status='in';
+    if(u.status!=='out'&&u.status!=='longterm') u.status='in';
+  });
+}
+
+/* ===== persistence (local + optional backup file) ===== */
+function dataObject(){ return { app:"loaner-unit-tracker", version:3, savedAt:new Date().toISOString(), units:UNITS, managers:MANAGERS, archive:ARCHIVE, mgrSeed:mgrSeedApplied }; }
+function saveLocal(){ try{ localStorage.setItem(LS_KEY, JSON.stringify(dataObject())); }catch(e){ console.warn('localStorage full/blocked',e); } }
+function loadLocal(){
+  let loaded=false;
+  try{ const raw=localStorage.getItem(LS_KEY); if(raw){ const o=JSON.parse(raw); if(o&&o.units){ UNITS=o.units; if(Array.isArray(o.managers)) MANAGERS=o.managers.slice(); if(Array.isArray(o.archive)) ARCHIVE=o.archive.slice(); if(typeof o.mgrSeed==='number') mgrSeedApplied=o.mgrSeed; loaded=true; } } }catch(e){}
+  if(!loaded){ // migrate from earlier build's cache key if present
+    try{ const old=localStorage.getItem('unittracker_cache'); if(old){ const c=JSON.parse(old); if(c&&c.units) UNITS=c.units; } }catch(e){}
+  }
+  if(!MANAGERS.length){ MANAGERS=DEFAULT_MANAGERS.slice(); }
+  else if(mgrSeedApplied<MGR_SEED){
+    // one-time merge: append newly-shipped default managers that aren't already in the saved list
+    const have=new Set(MANAGERS.map(m=>String(m).trim().toLowerCase()));
+    DEFAULT_MANAGERS.forEach(m=>{ if(!have.has(m.trim().toLowerCase())) MANAGERS.push(m); });
+  }
+  mgrSeedApplied=MGR_SEED;
+  normalizeUnits();
+}
+async function saveFile(){
+  if(!fileHandle) return;
+  try{
+    const w=await fileHandle.createWritable();
+    await w.write(JSON.stringify(dataObject(),null,2));
+    await w.close();
+    setFilePill('linked');
+  }catch(e){ console.warn('file save failed',e); setFilePill('err'); }
+}
+// call after every data change
+function persist(){ saveLocal(); if(fileHandle) saveFile(); }
+
+function setFilePill(state){
+  const p=$("#filePill"), t=$("#fileTxt");
+  p.classList.remove('on','err');
+  if(state==='linked'){ p.classList.add('on'); t.textContent='Auto-saving to '+(fileHandle?fileHandle.name:'file'); }
+  else if(state==='err'){ p.classList.add('err'); t.textContent='Backup file error'; }
+  else { p.classList.add('on'); t.textContent='Saved on this laptop'; }
+}
+
+/* ===== computed lists ===== */
+function unitsArr(){ return Object.values(UNITS); }
+function outLoans(){ return unitsArr().filter(u=>u.status==='out'&&u.loan).map(u=>({u,loan:u.loan})); }
+function longTerms(){ return unitsArr().filter(u=>u.status==='longterm'); }
+function returnedRows(){
+  const rows=[];
+  unitsArr().forEach(u=>(u.history||[]).forEach((h,i)=>rows.push({u,h,i,archived:false})));
+  ARCHIVE.forEach((a,idx)=>rows.push({u:{model:a.model,serial:a.serial},h:a,i:idx,archived:true,archIdx:idx}));
+  return rows;
+}
+function unitManager(u){ return (u.loan&&u.loan.manager)||(u.longterm&&u.longterm.manager)||''; }
+
+/* reservations: return list of human-readable conflicts for a candidate window */
+function reservationConflicts(u, start, days, exceptId){
+  const end=addDaysISO(start, days); const c=[];
+  if(u.status==='out'&&u.loan&&u.loan.start&&u.loan.expiry && overlaps(start,end,u.loan.start,u.loan.expiry))
+    c.push('the current loan to '+(u.loan.customer||'a customer')+' ('+fmtDate(u.loan.start)+' → '+fmtDate(u.loan.expiry)+')');
+  (u.reservations||[]).forEach(r=>{ if(r.id===exceptId) return; const re=addDaysISO(r.start,r.days);
+    if(overlaps(start,end,r.start,re)) c.push('another request ('+fmtDate(r.start)+' → '+fmtDate(re)+(r.customer?(', '+r.customer):'')+')'); });
+  return c;
+}
+
+/* dropdown options for account managers */
+function managerOptions(sel){
+  return ['<option value="">— none —</option>']
+    .concat(MANAGERS.map(m=>`<option value="${esc(m)}"${m===sel?' selected':''}>${esc(m)}</option>`))
+    .join('');
+}
+function fillManagerSelect(id,sel){ $(id).innerHTML=managerOptions(sel||''); }
+
+/* ===== stats ===== */
+function renderStats(){
+  const arr=unitsArr();
+  const out=arr.filter(u=>u.status==='out');
+  const overdue=out.filter(u=>u.loan&&u.loan.expiry&&daysUntil(u.loan.expiry)<0);
+  const cards=[
+    {n:arr.length, l:'Total Units'},
+    {n:arr.filter(u=>u.onAccount).length, l:'On Account'},
+    {n:arr.filter(u=>u.fromUS).length, l:'From US'},
+    {n:arr.filter(u=>u.status==='in').length, l:'In-House'},
+    {n:out.length, l:'Short-Term'},
+    {n:arr.filter(u=>u.status==='longterm').length, l:'Long-Term'},
+    {n:arr.filter(u=>u.tfs).length, l:'TFS Support'},
+    {n:overdue.length, l:'Overdue', bad:true},
+  ];
+  $("#stats").innerHTML=cards.map(c=>`<div class="stat${c.bad&&c.n>0?' bad':''}"><b>${c.n}</b><span>${c.l}</span></div>`).join('');
+}
+
+/* placement badge for a unit */
+function placementCell(u){
+  if(u.status==='out'){ const c=u.loan&&u.loan.customer?(' '+esc(u.loan.customer)):''; return `<span class="badge out">OUT</span>${c}`; }
+  if(u.status==='longterm'){ const lt=u.longterm||{}; const who=lt.holder||lt.type||'Long-term'; return `<span class="badge lt">LONG-TERM</span> ${esc(who)}`; }
+  return `<span class="badge in">IN-HOUSE</span>`;
+}
+function tagsCell(u){
+  const t=[];
+  if(u.onAccount) t.push('<span class="badge acct">On account</span>');
+  if(u.tfs) t.push('<span class="badge tfs">TFS</span>');
+  if(u.fromUS) t.push('<span class="badge us">US→CA</span>');
+  return t.length?`<div class="tags">${t.join('')}</div>`:'<span class="badge ext">—</span>';
+}
+function reqCell(u){
+  const rs=(u.reservations||[]).slice().sort((a,b)=>a.start.localeCompare(b.start));
+  if(!rs.length) return `<button class="btn ghost sm" data-reserve="${u.id}">＋ Reserve</button>`;
+  return `<button class="btn info sm" data-reserve="${u.id}">${rs.length} req · ${fmtDate(rs[0].start)}</button>`;
+}
+
+/* ===== render: ALL ===== */
+function renderAllTab(){
+  const q=$("#allSearch").value.trim().toLowerCase();
+  const acctOnly=$("#fAccount").checked;
+  const tfsOnly=$("#fTFS").checked;
+  const usOnly=$("#fFromUS").checked;
+  const st=$("#fStatus").value;
+  let arr=unitsArr().sort((a,b)=>(a.model||'').localeCompare(b.model||'')||(a.serial||'').localeCompare(b.serial||''));
+  if(acctOnly) arr=arr.filter(u=>u.onAccount);
+  if(tfsOnly) arr=arr.filter(u=>u.tfs);
+  if(usOnly) arr=arr.filter(u=>u.fromUS);
+  if(st) arr=arr.filter(u=>u.status===st);
+  if(q) arr=arr.filter(u=>[u.model,u.serial,u.loan&&u.loan.customer,u.longterm&&u.longterm.holder,unitManager(u)].some(v=>String(v||'').toLowerCase().includes(q)));
+  const body=$("#allBody");
+  if(!arr.length){ body.innerHTML=`<tr><td colspan="7" class="empty">No units yet. Click <b>＋ Add Unit</b> to start.</td></tr>`; return; }
+  body.innerHTML=arr.map(u=>{
+    let act='';
+    if(u.status==='in') act=`<button class="btn sm" data-loan="${u.id}">Loan Out</button><button class="btn lt sm" data-longterm="${u.id}">Long-Term</button>`;
+    else if(u.status==='out') act=`<button class="btn ok sm" data-return="${u.id}">Return</button>`;
+    else if(u.status==='longterm') act=`<button class="btn lt sm" data-editlt="${u.id}">Edit L-T</button><button class="btn warn sm" data-endlt="${u.id}">End</button>`;
+    return `<tr>
+      <td class="name"><b>${esc(u.model||'—')}</b></td>
+      <td class="name mono">${esc(u.serial||'—')}</td>
+      <td>${tagsCell(u)}</td>
+      <td>${placementCell(u)}</td>
+      <td>${esc(unitManager(u)||'—')}</td>
+      <td>${reqCell(u)}</td>
+      <td class="acts"><div class="rowacts">
+        ${act}
+        <button class="btn ghost sm" data-edit="${u.id}">Edit</button>
+        <button class="btn danger sm" data-del="${u.id}">✕</button>
+      </div></td>
+    </tr>`;
+  }).join('');
+}
+
+/* ===== render: OUT (short-term) ===== */
+function renderOutTab(){
+  const q=$("#outSearch").value.trim().toLowerCase();
+  const overdueOnly=$("#fOverdue").checked;
+  let rows=outLoans();
+  if(overdueOnly) rows=rows.filter(r=>r.loan.expiry&&daysUntil(r.loan.expiry)<0);
+  if(q) rows=rows.filter(r=>[r.u.model,r.u.serial,r.loan.customer,r.loan.manager,r.loan.waybill,r.loan.courier].some(v=>String(v||'').toLowerCase().includes(q)));
+  rows.sort((a,b)=>(a.loan.entered||0)-(b.loan.entered||0));  // latest entry at the bottom
+  const body=$("#outBody");
+  if(!rows.length){ body.innerHTML=`<tr><td colspan="13" class="empty">Nothing out on short-term loan.</td></tr>`; return; }
+  body.innerHTML=rows.map(({u,loan})=>{
+    const d=loan.expiry?daysUntil(loan.expiry):null;
+    let dcell='—';
+    if(d!==null){ const cls=d<0?'r':(d<=3?'a':'g'); dcell=`<span class="days ${cls}">${d}</span>`; }
+    return `<tr>
+      <td class="name"><b>${esc(u.model||'—')}</b></td>
+      <td class="name mono">${esc(u.serial||'—')}</td>
+      <td>${esc(loan.customer||'—')}</td>
+      <td>${esc(loan.manager||'—')}</td>
+      <td>${fmtDate(loan.left)}</td>
+      <td>${esc(loan.courier||'—')}</td>
+      <td class="mono">${esc(loan.waybill||'—')}</td>
+      <td>${fmtDate(loan.start)}</td>
+      <td>${fmtDate(loan.expiry)}</td>
+      <td>${dcell}</td>
+      <td>${reqCell(u)}</td>
+      <td class="wrap-cell">${esc(loan.comments||'')}</td>
+      <td class="acts"><div class="rowacts">
+        <button class="btn ok sm" data-return="${u.id}">Return</button>
+        <button class="btn ghost sm" data-editloan="${u.id}">Edit</button>
+      </div></td>
+    </tr>`;
+  }).join('');
+}
+
+/* ===== render: LONG-TERM ===== */
+function renderLongTermTab(){
+  const q=$("#ltSearch").value.trim().toLowerCase();
+  let rows=longTerms();
+  if(q) rows=rows.filter(u=>[u.model,u.serial,u.longterm&&u.longterm.holder,u.longterm&&u.longterm.manager,u.longterm&&u.longterm.notes].some(v=>String(v||'').toLowerCase().includes(q)));
+  rows.sort((a,b)=>(a.model||'').localeCompare(b.model||'')||(a.serial||'').localeCompare(b.serial||''));
+  const body=$("#ltBody");
+  if(!rows.length){ body.innerHTML=`<tr><td colspan="8" class="empty">No long-term / permanent loans. Use <b>Long-Term</b> on the All Units tab.</td></tr>`; return; }
+  body.innerHTML=rows.map(u=>{ const L=u.longterm||{}; return `<tr>
+      <td class="name"><b>${esc(u.model||'—')}</b></td>
+      <td class="name mono">${esc(u.serial||'—')}</td>
+      <td>${esc(L.holder||'—')}</td>
+      <td>${esc(L.type||'Long-term')}</td>
+      <td>${esc(L.manager||'—')}</td>
+      <td>${fmtDate(L.since)}</td>
+      <td class="wrap-cell">${esc(L.notes||'')}</td>
+      <td class="acts"><div class="rowacts">
+        <button class="btn lt sm" data-editlt="${u.id}">Edit</button>
+        <button class="btn warn sm" data-endlt="${u.id}">End</button>
+      </div></td>
+    </tr>`; }).join('');
+}
+
+/* ===== render: TFS SUPPORT ===== */
+function renderTFSTab(){
+  const q=$("#tfsSearch").value.trim().toLowerCase();
+  let rows=unitsArr().filter(u=>u.tfs);
+  if(q) rows=rows.filter(u=>[u.model,u.serial,unitManager(u)].some(v=>String(v||'').toLowerCase().includes(q)));
+  rows.sort((a,b)=>(a.model||'').localeCompare(b.model||'')||(a.serial||'').localeCompare(b.serial||''));
+  const body=$("#tfsBody");
+  if(!rows.length){ body.innerHTML=`<tr><td colspan="6" class="empty">No units marked as TFS Support yet. Tick <b>TFS Support</b> in a unit’s Edit screen.</td></tr>`; return; }
+  body.innerHTML=rows.map(u=>`<tr>
+      <td class="name"><b>${esc(u.model||'—')}</b></td>
+      <td class="name mono">${esc(u.serial||'—')}</td>
+      <td>${placementCell(u)}</td>
+      <td>${esc(unitManager(u)||'—')}</td>
+      <td>${u.onAccount?'<span class="badge acct">On account</span>':'<span class="badge ext">—</span>'}</td>
+      <td class="acts"><div class="rowacts">
+        <button class="btn warn sm" data-tfs="${u.id}">Remove tag</button>
+      </div></td>
+    </tr>`).join('');
+}
+
+/* ===== render: RETURNED ===== */
+function renderReturnedTab(){
+  const q=$("#retSearch").value.trim().toLowerCase();
+  let rows=returnedRows();
+  if(q) rows=rows.filter(r=>[r.u.model,r.u.serial,r.h.customer,r.h.waybill,r.h.inWaybill,r.h.service,r.h.reason].some(v=>String(v||'').toLowerCase().includes(q)));
+  rows.sort((a,b)=>String(b.h.returned||'').localeCompare(String(a.h.returned||'')));
+  const body=$("#retBody");
+  if(!rows.length){ body.innerHTML=`<tr><td colspan="11" class="empty">No returned units yet.</td></tr>`; return; }
+  body.innerHTML=rows.map(r=>{
+    const {u,h}=r;
+    const note = r.archived ? `<span class="badge ext">removed</span> ${esc(h.reason||'')}` : '—';
+    const action = r.archived
+      ? `<button class="btn danger sm" data-archdel="${r.archIdx}" title="Delete this archived record permanently">✕</button>`
+      : `<button class="btn ghost sm" data-undo="${u.id}:${r.i}" title="Send back out (undo return)">↺</button>`;
+    return `<tr>
+      <td class="name"><b>${esc(u.model||'—')}</b></td>
+      <td class="name mono">${esc(u.serial||'—')}</td>
+      <td>${esc(h.customer||'—')}</td>
+      <td>${fmtDate(h.left)}</td>
+      <td>${esc(h.courier||'—')}</td>
+      <td class="mono">${esc(h.waybill||'—')}</td>
+      <td class="mono">${esc(h.inWaybill||'—')}</td>
+      <td>${fmtDate(h.returned)}</td>
+      <td class="mono">${esc(h.service||'—')}</td>
+      <td class="wrap-cell">${note}</td>
+      <td style="text-align:right">${action}</td>
+    </tr>`;
+  }).join('');
+}
+
+function renderAll(){ renderStats(); renderAllTab(); renderOutTab(); renderLongTermTab(); renderTFSTab(); renderReturnedTab(); }
+
+/* ===== modals ===== */
+function openOverlay(id){ $(id).classList.add('show'); }
+function closeOverlay(id){ $(id).classList.remove('show'); }
+$$('[data-close]').forEach(b=>b.addEventListener('click',e=>e.target.closest('.overlay').classList.remove('show')));
+$$('.overlay').forEach(o=>o.addEventListener('click',e=>{ if(e.target===o) o.classList.remove('show'); }));
+
+/* add / edit unit */
+function openUnitModal(id){
+  editingUnitId=id||null;
+  const u=id?UNITS[id]:null;
+  $("#unitTitle").textContent=id?'Edit Unit':'Add Unit';
+  $("#u_model").value=u?u.model||'':'';
+  $("#u_serial").value=u?u.serial||'':'';
+  $("#u_account").checked=u?!!u.onAccount:false;
+  $("#u_tfs").checked=u?!!u.tfs:false;
+  $("#u_us").checked=u?!!u.fromUS:false;
+  openOverlay('#unitOverlay'); setTimeout(()=>$("#u_model").focus(),50);
+}
+$("#addUnitBtn").addEventListener('click',()=>openUnitModal(null));
+$("#u_save").addEventListener('click',()=>{
+  const model=$("#u_model").value.trim(), serial=$("#u_serial").value.trim();
+  if(!model&&!serial){ toast('Enter a model or serial'); return; }
+  // duplicate model+serial warning (compare against other units)
+  const dup=unitsArr().find(x=>x.id!==editingUnitId
+      && (x.model||'').trim().toLowerCase()===model.toLowerCase()
+      && (x.serial||'').trim().toLowerCase()===serial.toLowerCase());
+  if(dup){ if(!confirm(`⚠ A unit with this Model and Serial already exists:\n\n${dup.model||'(no model)'} · ${dup.serial||'(no serial)'}\n\nSave this one anyway?`)) return; }
+  if(editingUnitId){
+    const u=UNITS[editingUnitId]; u.model=model; u.serial=serial; u.onAccount=$("#u_account").checked; u.tfs=$("#u_tfs").checked; u.fromUS=$("#u_us").checked;
+    persist(); toast('Unit updated');
+  }else{
+    const u={id:uid(),model,serial,onAccount:$("#u_account").checked,tfs:$("#u_tfs").checked,fromUS:$("#u_us").checked,status:'in',loan:null,longterm:null,reservations:[],history:[]};
+    UNITS[u.id]=u; persist(); toast('Unit added');
+  }
+  closeOverlay('#unitOverlay'); renderAll();
+});
+
+/* short-term loan */
+function openLoanModal(id){
+  loanUnitId=id; const u=UNITS[id]; if(!u) return;
+  const isEdit=u.status==='out'&&u.loan;
+  $("#loanUnitLabel").innerHTML=`<b>${esc(u.model||'')}</b> · ${esc(u.serial||'')}`;
+  const L=isEdit?u.loan:{};
+  $("#l_customer").value=L.customer||'';
+  fillManagerSelect('#l_manager', L.manager||'');
+  $("#l_left").value=L.left||todayISO();
+  $("#l_courier").value=L.courier||'';
+  $("#l_waybill").value=L.waybill||'';
+  $("#l_start").value=L.start||todayISO();
+  $("#l_expiry").value=L.expiry||'';
+  $("#l_comments").value=L.comments||'';
+  openOverlay('#loanOverlay'); setTimeout(()=>$("#l_customer").focus(),50);
+}
+$("#l_save").addEventListener('click',()=>{
+  const u=UNITS[loanUnitId]; if(!u) return;
+  const prevEntered=(u.loan&&u.loan.entered)||null;   // keep original position when editing an existing loan
+  u.loan={ customer:$("#l_customer").value.trim(), manager:$("#l_manager").value, left:$("#l_left").value, courier:$("#l_courier").value.trim(),
+    waybill:$("#l_waybill").value.trim(), start:$("#l_start").value, expiry:$("#l_expiry").value, comments:$("#l_comments").value.trim(),
+    entered: prevEntered || Date.now() };
+  u.status='out'; u.longterm=null;
+  persist(); closeOverlay('#loanOverlay'); renderAll(); toast('Loaned out');
+});
+
+/* long-term loan */
+function openLongTermModal(id){
+  ltUnitId=id; const u=UNITS[id]; if(!u) return;
+  const isEdit=u.status==='longterm'&&u.longterm; const L=isEdit?u.longterm:{};
+  $("#ltUnitLabel").innerHTML=`<b>${esc(u.model||'')}</b> · ${esc(u.serial||'')}`;
+  $("#lt_holder").value=L.holder||'';
+  $("#lt_type").value=L.type||'Long-term';
+  fillManagerSelect('#lt_manager', L.manager||'');
+  $("#lt_since").value=L.since||todayISO();
+  $("#lt_notes").value=L.notes||'';
+  openOverlay('#longtermOverlay'); setTimeout(()=>$("#lt_holder").focus(),50);
+}
+$("#lt_save").addEventListener('click',()=>{
+  const u=UNITS[ltUnitId]; if(!u) return;
+  u.longterm={ holder:$("#lt_holder").value.trim(), type:$("#lt_type").value, manager:$("#lt_manager").value, since:$("#lt_since").value, notes:$("#lt_notes").value.trim() };
+  u.status='longterm'; u.loan=null;
+  persist(); closeOverlay('#longtermOverlay'); renderAll(); toast('Set to long-term');
+});
+
+/* return */
+function openReturnModal(id){
+  returnUnitId=id; const u=UNITS[id]; if(!u||!u.loan) return;
+  $("#returnUnitLabel").innerHTML=`<b>${esc(u.model||'')}</b> · ${esc(u.serial||'')} — to ${esc(u.loan.customer||'—')}`;
+  $("#r_waybill").value=''; $("#r_date").value=todayISO(); $("#r_service").value=''; $("#r_courier").value=u.loan.courier||'';
+  openOverlay('#returnOverlay'); setTimeout(()=>$("#r_waybill").focus(),50);
+}
+$("#r_save").addEventListener('click',()=>{
+  const u=UNITS[returnUnitId]; if(!u||!u.loan) return;
+  const L=u.loan;
+  const rec={ customer:L.customer, manager:L.manager, left:L.left, courier:$("#r_courier").value.trim()||L.courier, waybill:L.waybill,
+    start:L.start, expiry:L.expiry, comments:L.comments,
+    inWaybill:$("#r_waybill").value.trim(), returned:$("#r_date").value||todayISO(), service:$("#r_service").value.trim() };
+  u.history=u.history||[]; u.history.push(rec);
+  u.loan=null; u.status='in';
+  persist(); closeOverlay('#returnOverlay'); renderAll(); toast('Marked returned');
+});
+
+/* reserve / request a loan */
+function updateResEnd(){
+  const s=$("#res_start").value, d=parseInt($("#res_days").value,10);
+  $("#res_end").textContent=(s&&d>0)?('Loan window: '+fmtDate(s)+' → '+fmtDate(addDaysISO(s,d))):'';
+}
+function renderReserveList(){
+  const u=UNITS[reserveUnitId]; if(!u) return;
+  const rs=(u.reservations||[]).slice().sort((a,b)=>a.start.localeCompare(b.start));
+  $("#reserveList").innerHTML = rs.length
+    ? '<div style="font-weight:700;margin-bottom:6px">Existing requests</div>'+rs.map(r=>{
+        const end=addDaysISO(r.start,r.days);
+        return `<div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px;border:1px solid var(--line);border-radius:9px;padding:8px 10px;margin-bottom:6px">
+          <div><b>${fmtDate(r.start)} → ${fmtDate(end)}</b> <span class="hint">(${r.days} day${r.days==1?'':'s'})</span><br>
+          <span class="hint">${esc(r.customer||'—')}${r.manager?(' · '+esc(r.manager)):''}${r.notes?(' · '+esc(r.notes)):''}</span></div>
+          <button class="btn danger sm" data-resdel="${u.id}:${r.id}">✕</button></div>`;
+      }).join('')
+    : '<div class="hint">No requests yet.</div>';
+}
+function openReserveModal(id){
+  reserveUnitId=id; const u=UNITS[id]; if(!u) return;
+  $("#reserveUnitLabel").innerHTML=`<b>${esc(u.model||'')}</b> · ${esc(u.serial||'')}`;
+  let ctx;
+  if(u.status==='out'&&u.loan) ctx='Currently out to '+(u.loan.customer||'a customer')+(u.loan.expiry?(' until '+fmtDate(u.loan.expiry)):'')+'. New requests are allowed as long as the dates don’t overlap.';
+  else if(u.status==='longterm') ctx='Currently on a long-term loan.';
+  else ctx='Currently in-house.';
+  $("#reserveContext").textContent=ctx;
+  fillManagerSelect('#res_manager','');
+  $("#res_start").value=todayISO(); $("#res_days").value='7'; $("#res_customer").value=''; $("#res_notes").value='';
+  updateResEnd(); renderReserveList();
+  openOverlay('#reserveOverlay');
+}
+$("#res_start").addEventListener('input',updateResEnd);
+$("#res_days").addEventListener('input',updateResEnd);
+$("#res_add").addEventListener('click',()=>{
+  const u=UNITS[reserveUnitId]; if(!u) return;
+  const start=$("#res_start").value, days=parseInt($("#res_days").value,10);
+  if(!start||!(days>0)){ toast('Enter a start date and days'); return; }
+  const conflicts=reservationConflicts(u,start,days,null);
+  if(conflicts.length){
+    if(!confirm('⚠ Possible overlap\n\nThis request ('+fmtDate(start)+' → '+fmtDate(addDaysISO(start,days))+') overlaps:\n\n• '+conflicts.join('\n• ')+'\n\nAdd the request anyway?')) return;
+  }
+  u.reservations=u.reservations||[];
+  u.reservations.push({id:uid(),start,days,customer:$("#res_customer").value.trim(),manager:$("#res_manager").value,notes:$("#res_notes").value.trim()});
+  persist(); renderReserveList(); renderAll();
+  $("#res_customer").value=''; $("#res_notes").value='';
+  toast('Request added');
+});
+
+/* delete unit (two modes) */
+function openDeleteModal(id){
+  deleteUnitId=id; const u=UNITS[id]; if(!u) return;
+  $("#deleteUnitLabel").innerHTML=`<b>${esc(u.model||'')}</b> · ${esc(u.serial||'')}`;
+  const allRadio=document.querySelector('input[name=delmode][value=all]'); if(allRadio) allRadio.checked=true;
+  $("#del_reason").value='';
+  $("#delReasonWrap").style.display='none';
+  openOverlay('#deleteOverlay');
+}
+$$('input[name=delmode]').forEach(r=>r.addEventListener('change',()=>{
+  const keep=document.querySelector('input[name=delmode]:checked').value==='keep';
+  $("#delReasonWrap").style.display=keep?'':'none';
+  if(keep) setTimeout(()=>$("#del_reason").focus(),30);
+}));
+function performDelete(id, mode, reason){
+  const u=UNITS[id]; if(!u) return;
+  if(mode==='keep'){
+    const at=todayISO(); let pushed=0;
+    (u.history||[]).forEach(h=>{ ARCHIVE.push(Object.assign({},h,{model:u.model,serial:u.serial,reason:reason,archivedAt:at})); pushed++; });
+    if(u.status==='out'&&u.loan){
+      ARCHIVE.push({model:u.model,serial:u.serial,customer:u.loan.customer,manager:u.loan.manager,left:u.loan.left,courier:u.loan.courier,waybill:u.loan.waybill,inWaybill:'',returned:at,service:'(removed while on loan)',start:u.loan.start,expiry:u.loan.expiry,comments:u.loan.comments,reason:reason,archivedAt:at}); pushed++;
+    } else if(u.status==='longterm'&&u.longterm){
+      ARCHIVE.push({model:u.model,serial:u.serial,customer:u.longterm.holder,manager:u.longterm.manager,left:'',courier:'',waybill:'',inWaybill:'',returned:at,service:'(removed from long-term)',start:u.longterm.since,expiry:'',comments:u.longterm.notes,reason:reason,archivedAt:at}); pushed++;
+    }
+    if(!pushed){ ARCHIVE.push({model:u.model,serial:u.serial,customer:'',manager:'',left:'',courier:'',waybill:'',inWaybill:'',returned:at,service:'(removed)',start:'',expiry:'',comments:'',reason:reason,archivedAt:at}); }
+  }
+  delete UNITS[id];
+  persist();
+}
+$("#del_confirm").addEventListener('click',()=>{
+  const mode=document.querySelector('input[name=delmode]:checked').value;
+  const reason=$("#del_reason").value.trim();
+  performDelete(deleteUnitId, mode, reason);
+  closeOverlay('#deleteOverlay'); renderAll();
+  toast(mode==='keep'?'Removed — history kept':'Unit deleted');
+});
+
+/* manage account managers */
+function mgrInputVals(){ return Array.from($$('#mgrRows input[data-mgr]')).map(i=>i.value); }
+function renderManagerRows(list){
+  const arr=list||MANAGERS.slice();
+  $("#mgrRows").innerHTML = arr.length
+    ? arr.map((m,i)=>`<div style="display:flex;gap:8px;margin-bottom:8px"><input value="${esc(m)}" data-mgr="${i}" placeholder="Name"><button class="btn danger sm" data-mgrdel="${i}">✕</button></div>`).join('')
+    : '<div class="hint" style="margin-bottom:8px">No managers yet — add one below.</div>';
+}
+$("#manageMgrBtn").addEventListener('click',()=>{ renderManagerRows(); openOverlay('#manageMgrOverlay'); });
+$("#mgrAdd").addEventListener('click',()=>{ renderManagerRows(mgrInputVals().concat([''])); });
+$("#mgr_save").addEventListener('click',()=>{
+  const seen=new Set(); const list=[];
+  mgrInputVals().forEach(v=>{ const t=v.trim(); if(t&&!seen.has(t.toLowerCase())){ seen.add(t.toLowerCase()); list.push(t); } });
+  MANAGERS=list; persist(); closeOverlay('#manageMgrOverlay'); renderAll(); toast('Account managers saved');
+});
+
+/* data / backup modal */
+function refreshDataModal(){
+  const linked=!!fileHandle;
+  $("#fileStateTxt").textContent = linked ? ('Auto-saving to '+fileHandle.name) : 'Saved on this laptop (browser storage)';
+  $("#fileStateSub").textContent = linked ? 'Every change is also written to this file.' : 'No backup file linked yet.';
+  $("#linkFileBtn").style.display = HAS_FSA ? '' : 'none';
+  $("#linkHint").style.display = HAS_FSA ? '' : 'none';
+  $("#saveCopyBtn").textContent = HAS_FSA ? '💾 Save a backup copy…' : '💾 Download a backup copy';
+}
+$("#dataBtn").addEventListener('click',()=>{ refreshDataModal(); openOverlay('#dataOverlay'); });
+
+$("#linkFileBtn").addEventListener('click',async()=>{
+  if(!HAS_FSA){ downloadBackup(); return; }
+  try{
+    fileHandle=await window.showSaveFilePicker({ suggestedName:'loaner-data.json',
+      types:[{description:'Loaner data',accept:{'application/json':['.json']}}] });
+    await saveFile(); refreshDataModal(); toast('Backup file linked');
+  }catch(e){ if(e.name==='AbortError') return; console.warn(e); toast('Couldn’t link a file here — use “Save a backup copy” instead'); }
+});
+
+function downloadBackup(){
+  const blob=new Blob([JSON.stringify(dataObject(),null,2)],{type:'application/json'});
+  const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download='loaner-data.json'; a.click();
+  setTimeout(()=>URL.revokeObjectURL(a.href),1000); toast('Backup saved');
+}
+$("#saveCopyBtn").addEventListener('click',async()=>{
+  if(HAS_FSA){
+    try{
+      const h=await window.showSaveFilePicker({ suggestedName:'loaner-data-backup.json',
+        types:[{description:'Loaner data',accept:{'application/json':['.json']}}] });
+      const w=await h.createWritable(); await w.write(JSON.stringify(dataObject(),null,2)); await w.close(); toast('Backup saved');
+    }catch(e){ if(e.name==='AbortError') return; console.warn(e); downloadBackup(); }
+  } else downloadBackup();
+});
+
+function loadImported(text){
+  let o; try{ o=JSON.parse(text); }catch(e){ toast('That file isn’t a valid backup'); return; }
+  const units = o && o.units ? o.units : (o && typeof o==='object' && !Array.isArray(o) ? o : null);
+  if(!units){ toast('No unit data found in that file'); return; }
+  if(!confirm('Replace everything currently on screen with the contents of this backup file?')) return;
+  UNITS=units;
+  MANAGERS = (o && Array.isArray(o.managers) && o.managers.length) ? o.managers.slice() : DEFAULT_MANAGERS.slice();
+  ARCHIVE = (o && Array.isArray(o.archive)) ? o.archive.slice() : [];
+  normalizeUnits();
+  persist(); renderAll(); closeOverlay('#dataOverlay'); toast('Backup restored');
+}
+$("#importBtn").addEventListener('click',async()=>{
+  if(HAS_FSA){
+    try{
+      const [h]=await window.showOpenFilePicker({ types:[{description:'Loaner data',accept:{'application/json':['.json']}}] });
+      const f=await h.getFile(); loadImported(await f.text());
+    }catch(e){ if(e.name==='AbortError') return; console.warn(e); $("#importInput").click(); }
+  } else $("#importInput").click();
+});
+$("#importInput").addEventListener('change',e=>{
+  const f=e.target.files[0]; if(!f) return;
+  const r=new FileReader(); r.onload=()=>loadImported(r.result); r.readAsText(f); e.target.value='';
+});
+
+/* delegated table actions */
+document.addEventListener('click',e=>{
+  const b=e.target.closest('button'); if(!b) return;
+  if(b.dataset.edit) return openUnitModal(b.dataset.edit);
+  if(b.dataset.loan) return openLoanModal(b.dataset.loan);
+  if(b.dataset.editloan) return openLoanModal(b.dataset.editloan);
+  if(b.dataset.longterm) return openLongTermModal(b.dataset.longterm);
+  if(b.dataset.editlt) return openLongTermModal(b.dataset.editlt);
+  if(b.dataset.return) return openReturnModal(b.dataset.return);
+  if(b.dataset.reserve) return openReserveModal(b.dataset.reserve);
+  if(b.dataset.del) return openDeleteModal(b.dataset.del);
+  if(b.dataset.resdel){
+    const [id,rid]=b.dataset.resdel.split(':'); const u=UNITS[id]; if(!u) return;
+    u.reservations=(u.reservations||[]).filter(r=>r.id!==rid);
+    persist(); renderReserveList(); renderAll(); toast('Request removed');
+    return;
+  }
+  if(b.dataset.tfs){
+    const u=UNITS[b.dataset.tfs]; if(!u) return;
+    u.tfs=!u.tfs; persist(); renderAll(); toast(u.tfs?'Tagged TFS Support':'Removed TFS tag');
+    return;
+  }
+  if(b.dataset.endlt){
+    const u=UNITS[b.dataset.endlt]; if(!u) return;
+    if(!confirm('End the long-term loan and return this unit to in-house?')) return;
+    u.longterm=null; u.status='in'; persist(); renderAll(); toast('Returned to in-house');
+    return;
+  }
+  if(b.dataset.mgrdel){
+    const vals=mgrInputVals(); vals.splice(+b.dataset.mgrdel,1); renderManagerRows(vals);
+    return;
+  }
+  if(b.dataset.archdel){
+    if(!confirm('Permanently delete this archived record from the Returned tab?')) return;
+    ARCHIVE.splice(+b.dataset.archdel,1); persist(); renderAll(); toast('Record deleted');
+    return;
+  }
+  if(b.dataset.undo){
+    const [id,idx]=b.dataset.undo.split(':'); const u=UNITS[id]; if(!u) return;
+    if(u.status!=='in'){ toast('Unit is already placed'); return; }
+    if(!confirm('Send this unit back out using the returned loan details? It will move from Returned back to Out on Loan.')) return;
+    const h=(u.history||[])[+idx]; if(!h) return;
+    u.history.splice(+idx,1);
+    u.loan={customer:h.customer,manager:h.manager,left:h.left,courier:h.courier,waybill:h.waybill,start:h.start,expiry:h.expiry,comments:h.comments,entered:Date.now()};
+    u.status='out'; persist(); renderAll(); toast('Back out on loan');
+  }
+});
+
+/* search / filter listeners */
+['allSearch','fAccount','fTFS','fFromUS','fStatus'].forEach(id=>$('#'+id).addEventListener('input',renderAllTab));
+['outSearch','fOverdue'].forEach(id=>$('#'+id).addEventListener('input',renderOutTab));
+$("#ltSearch").addEventListener('input',renderLongTermTab);
+$("#tfsSearch").addEventListener('input',renderTFSTab);
+$("#retSearch").addEventListener('input',renderReturnedTab);
+
+/* CSV export */
+function csv(rows){ return rows.map(r=>r.map(c=>{ const s=String(c==null?'':c); return /[",\n]/.test(s)?'"'+s.replace(/"/g,'""')+'"':s; }).join(',')).join('\r\n'); }
+function download(name,text){ const blob=new Blob([text],{type:'text/csv'}); const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download=name; a.click(); setTimeout(()=>URL.revokeObjectURL(a.href),1000); }
+function nextReq(u){ const rs=(u.reservations||[]).slice().sort((a,b)=>a.start.localeCompare(b.start)); return rs.length?fmtDate(rs[0].start):''; }
+$("#exportAll").addEventListener('click',()=>{
+  const rows=[['Model','Serial','On Account','TFS','From US','Placement','Account Manager','Open Requests','Next Request','Total Loans']];
+  unitsArr().forEach(u=>{
+    const place=u.status==='out'?('Out: '+(u.loan&&u.loan.customer||'')):u.status==='longterm'?('Long-term: '+((u.longterm&&(u.longterm.holder||u.longterm.type))||'')):'In-house';
+    rows.push([u.model,u.serial,u.onAccount?'Yes':'No',u.tfs?'Yes':'No',u.fromUS?'Yes':'No',place,unitManager(u),(u.reservations||[]).length,nextReq(u),(u.history||[]).length+(u.status==='out'?1:0)]);
+  });
+  download('all-units.csv',csv(rows)); toast('Exported');
+});
+$("#exportOut").addEventListener('click',()=>{
+  const rows=[['Model','Serial','Customer','Account Manager','Left Office','Courier','Waybill','Loan Start','Loan Expiry','Days Left','Open Requests','Comments']];
+  outLoans().forEach(({u,loan})=>rows.push([u.model,u.serial,loan.customer,loan.manager,fmtDate(loan.left),loan.courier,loan.waybill,fmtDate(loan.start),fmtDate(loan.expiry),loan.expiry?daysUntil(loan.expiry):'',(u.reservations||[]).length,loan.comments]));
+  download('out-on-loan.csv',csv(rows)); toast('Exported');
+});
+$("#exportLong").addEventListener('click',()=>{
+  const rows=[['Model','Serial','Holder','Type','Account Manager','Since','Notes']];
+  longTerms().forEach(u=>{ const L=u.longterm||{}; rows.push([u.model,u.serial,L.holder,L.type,L.manager,fmtDate(L.since),L.notes]); });
+  download('long-term-loans.csv',csv(rows)); toast('Exported');
+});
+$("#exportTFS").addEventListener('click',()=>{
+  const rows=[['Model','Serial','Placement','Account Manager','On Account']];
+  unitsArr().filter(u=>u.tfs).forEach(u=>{
+    const place=u.status==='out'?'Out (short-term)':u.status==='longterm'?'Long-term':'In-house';
+    rows.push([u.model,u.serial,place,unitManager(u),u.onAccount?'Yes':'No']);
+  });
+  download('tfs-support-units.csv',csv(rows)); toast('Exported');
+});
+$("#exportRet").addEventListener('click',()=>{
+  const rows=[['Model','Serial','Customer','Account Manager','Left Office','Courier','Out Waybill','In Waybill','Date Returned','Service Order','Note']];
+  returnedRows().forEach(({h,archived})=>rows.push([h.model||'',h.serial||'',h.customer,h.manager,fmtDate(h.left),h.courier,h.waybill,h.inWaybill,fmtDate(h.returned),h.service,archived?('REMOVED: '+(h.reason||'')):'']));
+  download('returned-units.csv',csv(rows)); toast('Exported');
+});
+
+/* tabs */
+const TABS=['all','out','longterm','tfs','returned','help'];
+$$('nav.tabs button').forEach(btn=>btn.addEventListener('click',()=>{
+  activeTab=btn.dataset.tab;
+  $$('nav.tabs button').forEach(x=>x.classList.toggle('active',x===btn));
+  TABS.forEach(t=>$("#tab-"+t).classList.toggle('hide',t!==activeTab));
+}));
+document.head.insertAdjacentHTML('beforeend','<style>.hide{display:none!important}</style>');
+
+/* theme */
+const themeBtn=$("#themeBtn");
+function applyTheme(t){ document.documentElement.setAttribute('data-theme',t); themeBtn.textContent=t==='dark'?'☀':'☾'; try{localStorage.setItem('unittracker_theme',t);}catch(e){} }
+themeBtn.addEventListener('click',()=>{ const cur=document.documentElement.getAttribute('data-theme')==='dark'?'dark':'light'; applyTheme(cur==='dark'?'light':'dark'); });
+(function(){ let t='light'; try{t=localStorage.getItem('unittracker_theme')||'light';}catch(e){} applyTheme(t); })();
+
+/* boot */
+loadLocal();
+saveLocal();   // persist any one-time manager merge / migration
+renderAll();
+setFilePill('local');
+// keep "Days Left" and stats current if the app is left open across midnight
+setInterval(()=>{ renderStats(); renderOutTab(); }, 60*60*1000);
+</script>
+</body>
+</html>

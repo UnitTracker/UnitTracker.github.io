@@ -1,0 +1,4 @@
+*.docx
+*.json
+deploy.bat
+~$*
