@@ -137,6 +137,7 @@ footer{text-align:center;color:var(--muted);font-size:12px;padding:18px 0 8px}
 <div class="wrap">
   <header>
     <h1>📦 Loaner Unit Tracker</h1>
+    <span class="livepill" id="syncPill"><span class="dot"></span><span id="syncTxt">Connecting…</span></span>
     <span class="livepill on" id="filePill"><span class="dot"></span><span id="fileTxt">Saved on this laptop</span></span>
     <button class="icon-btn" id="dataBtn" title="Backup &amp; data file">📂</button>
     <button class="icon-btn" id="themeBtn" title="Toggle theme">☾</button>
@@ -590,7 +591,43 @@ async function saveFile(){
   }catch(e){ console.warn('file save failed',e); setFilePill('err'); }
 }
 // call after every data change
-function persist(){ saveLocal(); if(fileHandle) saveFile(); }
+function persist(){ saveLocal(); if(fileHandle) saveFile(); fbPush(); }
+
+/* ===== cloud sync (shared board via Firebase Realtime DB) ===== */
+let pendingRemote=null, lastPushCanon='';
+function canonState(o){ try{ return JSON.stringify({u:(o&&o.units)||{},m:(o&&o.managers)||[],a:(o&&o.archive)||[],s:(o&&o.mgrSeed)||0}); }catch(e){ return ''; } }
+function anyModalOpen(){ return !!document.querySelector('.overlay.show'); }
+function fbPush(){ if(!window.__fbWrite) return; const obj=dataObject(); lastPushCanon=canonState(obj); try{ window.__fbWrite(obj); }catch(e){ console.warn('fbPush',e); } }
+function applyRemoteState(v){
+  try{
+    UNITS = (v.units && typeof v.units==='object') ? v.units : {};
+    MANAGERS = (Array.isArray(v.managers) && v.managers.length) ? v.managers.slice() : DEFAULT_MANAGERS.slice();
+    ARCHIVE = Array.isArray(v.archive) ? v.archive.slice() : [];
+    if(typeof v.mgrSeed==='number') mgrSeedApplied=v.mgrSeed;
+    normalizeUnits();
+    saveLocal();               // refresh local cache only — must NOT re-push (would loop)
+    renderAll();
+  }catch(e){ console.warn('applyRemote',e); }
+}
+// called by the Firebase module below whenever the shared board changes
+window.__applyRemote=function(v){
+  if(v==null){ // shared board is empty — seed it from whatever we have locally (e.g. an imported backup)
+    if(Object.keys(UNITS).length || ARCHIVE.length) fbPush();
+    return;
+  }
+  if(canonState(v)===lastPushCanon) return;      // ignore the echo of our own write
+  if(anyModalOpen()){ pendingRemote=v; return; } // don't stomp a form the user has open
+  applyRemoteState(v);
+};
+window.__setSync=function(state){
+  const p=$("#syncPill"), t=$("#syncTxt"); if(!p) return;
+  p.classList.remove('on','err');
+  if(state==='on'){ p.classList.add('on'); t.textContent='Live · shared'; }
+  else if(state==='err'){ p.classList.add('err'); t.textContent='Offline (local only)'; }
+  else { t.textContent='Connecting…'; }
+};
+// flush a deferred remote update once the user closes whatever modal was open
+setInterval(()=>{ if(pendingRemote!=null && !anyModalOpen()){ const v=pendingRemote; pendingRemote=null; applyRemoteState(v); } }, 800);
 
 function setFilePill(state){
   const p=$("#filePill"), t=$("#fileTxt");
@@ -1186,6 +1223,34 @@ renderAll();
 setFilePill('local');
 // keep "Days Left" and stats current if the app is left open across midnight
 setInterval(()=>{ renderStats(); renderOutTab(); }, 60*60*1000);
+</script>
+
+<!-- Shared live sync: reuses Eric's bon-echo Firebase Realtime Database, isolated under the "unittracker" path.
+     NOTE: this database is world-readable right now (no login). Fine while empty/testing — lock it down
+     (dedicated project + auth) before real customer data is entered. -->
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-app.js";
+import { getDatabase, ref, onValue, set } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-database.js";
+const firebaseConfig = {
+  apiKey: "AIzaSyD9AJbPC9M4gpTyvfIoRcqILq0ZOom1OBs",
+  authDomain: "bon-echo-bd946.firebaseapp.com",
+  databaseURL: "https://bon-echo-bd946-default-rtdb.firebaseio.com",
+  projectId: "bon-echo-bd946",
+  storageBucket: "bon-echo-bd946.firebasestorage.app",
+  messagingSenderId: "196437731482",
+  appId: "1:196437731482:web:3ac836962ce7d89e735723"
+};
+const SYNC_PATH = "unittracker/main";   // single shared board — everyone with the link sees this
+try{
+  const app = initializeApp(firebaseConfig);
+  const db = getDatabase(app);
+  const node = ref(db, SYNC_PATH);
+  window.__fbWrite = obj => { set(node, obj).catch(e=>console.warn('fb write',e)); };
+  onValue(node, snap => {
+    if(window.__setSync) window.__setSync('on');
+    if(window.__applyRemote) window.__applyRemote(snap.val());
+  }, err => { console.warn('fb sync error', err); if(window.__setSync) window.__setSync('err'); });
+}catch(e){ console.warn('Firebase init failed — local only', e); if(window.__setSync) window.__setSync('err'); }
 </script>
 </body>
 </html>
