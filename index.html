@@ -138,7 +138,6 @@ footer{text-align:center;color:var(--muted);font-size:12px;padding:18px 0 8px}
   <header>
     <h1>📦 Loaner Unit Tracker</h1>
     <span class="livepill" id="syncPill"><span class="dot"></span><span id="syncTxt">Connecting…</span></span>
-    <span class="livepill on" id="filePill"><span class="dot"></span><span id="fileTxt">Saved on this laptop</span></span>
     <button class="icon-btn" id="dataBtn" title="Backup &amp; data file">📂</button>
     <button class="icon-btn" id="themeBtn" title="Toggle theme">☾</button>
   </header>
@@ -248,7 +247,7 @@ footer{text-align:center;color:var(--muted);font-size:12px;padding:18px 0 8px}
   <section id="tab-help" class="panel hide">
     <div class="help">
       <h2>What this is</h2>
-      <p class="lead">A loaner-unit tracker that runs entirely on this computer — no internet, no accounts, nothing in the cloud. Your information is saved automatically on this laptop and never leaves it. <span class="tag">Version 3.1</span></p>
+      <p class="lead">A loaner-unit tracker shared live with your team — everyone with the link sees the same board, updating in real time, and it's backed up to the cloud automatically every hour. <span class="tag">Version 3.2</span></p>
 
       <h2>The tabs</h2>
       <div class="grid">
@@ -306,7 +305,7 @@ footer{text-align:center;color:var(--muted);font-size:12px;padding:18px 0 8px}
       <p>Two things are kept <b>separate</b>:</p>
       <ul>
         <li><b>The app</b> — the <code>index.html</code> file (the buttons and layout). This is the only thing that changes when you get an update.</li>
-        <li><b>Your data</b> — the units, loans, requests and account-manager list. Saved automatically on this laptop, and (if you set it up) in a <b>backup file</b> you control.</li>
+        <li><b>Your data</b> — the units, loans, requests and account-manager list. Shared live with everyone on the link, backed up hourly to the cloud, and cached on this device. You can also keep your own <b>backup file</b> if you like.</li>
       </ul>
       <p>Because they’re separate, replacing the app file does <b>not</b> erase your data.</p>
 
@@ -344,7 +343,7 @@ footer{text-align:center;color:var(--muted);font-size:12px;padding:18px 0 8px}
     </div>
   </section>
 
-  <footer id="footer">Loaner Unit Tracker · v3.1 · runs entirely on this computer · no internet required</footer>
+  <footer id="footer">Loaner Unit Tracker · v3.2 · shared live board · auto-synced + hourly cloud backups</footer>
 </div>
 
 <!-- Add / Edit unit modal -->
@@ -486,10 +485,10 @@ footer{text-align:center;color:var(--muted);font-size:12px;padding:18px 0 8px}
 <div class="overlay" id="dataOverlay">
   <div class="modal">
     <h3>Backup &amp; Data File</h3>
-    <div class="sub">Your data saves automatically on this laptop. A backup file lets you keep a copy on a USB drive, or hand it to a colleague to open on their computer.</div>
+    <div class="sub">Your data lives on the shared live board (everyone with the link sees it) and is backed up hourly to the cloud. The options below are extras: keep an offline copy, or roll back to an earlier hourly snapshot.</div>
     <div class="field" id="fileStateBox" style="background:var(--panel2);border:1px solid var(--line);border-radius:9px;padding:10px 12px;margin-bottom:14px">
-      <div id="fileStateTxt" style="font-weight:650">Saved on this laptop (browser storage)</div>
-      <div class="hint" id="fileStateSub">No backup file linked yet.</div>
+      <div id="fileStateTxt" style="font-weight:650">Shared live board + hourly cloud backups</div>
+      <div class="hint" id="fileStateSub">No local backup file linked on this device.</div>
     </div>
     <div class="field">
       <button class="btn" id="linkFileBtn" style="width:100%">🔗 Link a backup file (auto-saves into it)</button>
@@ -498,6 +497,10 @@ footer{text-align:center;color:var(--muted);font-size:12px;padding:18px 0 8px}
     <div class="field">
       <button class="btn ghost" id="saveCopyBtn" style="width:100%">💾 Save a backup copy…</button>
       <div class="hint">Download a one-time copy — for a USB drive or to send to the backup person.</div>
+    </div>
+    <div class="field">
+      <button class="btn ghost" id="autoBackupBtn" style="width:100%">🕒 Restore from an automatic backup…</button>
+      <div class="hint">Hourly cloud snapshots, kept ~2 days. Roll the whole shared board back to an earlier point.</div>
     </div>
     <div class="field">
       <button class="btn ghost" id="importBtn" style="width:100%">📥 Restore / import from a backup file…</button>
@@ -510,12 +513,24 @@ footer{text-align:center;color:var(--muted);font-size:12px;padding:18px 0 8px}
   </div>
 </div>
 
+<div class="overlay" id="backupsOverlay">
+  <div class="modal">
+    <h2>🕒 Automatic backups</h2>
+    <div class="sub">Hourly snapshots of the shared board (newest first). Restoring replaces the current board for everyone.</div>
+    <div id="backupsList" style="max-height:52vh;overflow:auto;margin:6px 0 14px"></div>
+    <div class="modal-actions">
+      <button class="btn ghost" data-close>Close</button>
+    </div>
+  </div>
+</div>
+
 <div class="savenote" id="savenote">Saved</div>
 
 <script>
-/* ===== Loaner Unit Tracker — fully offline, single computer =====
-   No cloud, no server. Data auto-saves to this browser's local storage
-   and (optionally) to a real backup file you link via the 📂 menu. */
+/* ===== Loaner Unit Tracker — shared live board =====
+   Data syncs for everyone via Firebase (see the module script at the bottom),
+   is cached in this browser's local storage, backed up hourly to the cloud,
+   and can also be exported to a local backup file via the 📂 menu. */
 
 const $=s=>document.querySelector(s);
 const $$=s=>document.querySelectorAll(s);
@@ -629,8 +644,57 @@ window.__setSync=function(state){
 // flush a deferred remote update once the user closes whatever modal was open
 setInterval(()=>{ if(pendingRemote!=null && !anyModalOpen()){ const v=pendingRemote; pendingRemote=null; applyRemoteState(v); } }, 800);
 
+/* ===== hourly automatic cloud backups (restore points) ===== */
+const MAX_BACKUPS=48;   // ~2 days of hourly snapshots
+function backupHourKey(d){ const p=n=>String(n).padStart(2,'0'); return `${d.getFullYear()}-${p(d.getMonth()+1)}-${p(d.getDate())}_${p(d.getHours())}`; }
+function doHourlyBackup(){
+  if(!window.__fbSnapshotWrite) return;
+  if(!(Object.keys(UNITS).length || ARCHIVE.length)) return;   // never snapshot an empty board
+  const d=new Date();
+  window.__fbSnapshotWrite(backupHourKey(d), { at:d.toISOString(), count:Object.keys(UNITS).length, data:dataObject() });
+  pruneBackups();
+}
+function pruneBackups(){
+  if(!window.__fbSnapshotList||!window.__fbSnapshotDelete) return;
+  window.__fbSnapshotList().then(map=>{
+    const keys=Object.keys(map).sort();            // ascending → oldest first
+    for(let i=0;i<keys.length-MAX_BACKUPS;i++) window.__fbSnapshotDelete(keys[i]);
+  });
+}
+function openBackupsModal(){
+  const box=$("#backupsList"); box.innerHTML='<div class="hint">Loading…</div>';
+  openOverlay('#backupsOverlay');
+  if(!window.__fbSnapshotList){ box.innerHTML='<div class="hint">Automatic backups need the live connection — not available offline.</div>'; return; }
+  window.__fbSnapshotList().then(map=>{
+    const keys=Object.keys(map).sort().reverse();  // newest first
+    if(!keys.length){ box.innerHTML='<div class="hint">No automatic backups yet — the first one is saved within an hour of use.</div>'; return; }
+    box.innerHTML=keys.map(k=>{
+      const s=map[k]||{}, when=s.at?new Date(s.at):null;
+      const label=when?when.toLocaleString(undefined,{month:'short',day:'numeric',year:'numeric',hour:'numeric',minute:'2-digit'}):k;
+      const cnt=(s.count!=null)?(s.count+' unit'+(s.count===1?'':'s')):'';
+      return `<div class="bkrow"><div><div style="font-weight:650">${esc(label)}</div><div class="hint">${esc(cnt)}</div></div><button class="btn ghost" data-restore="${esc(k)}">Restore</button></div>`;
+    }).join('');
+  }).catch(()=>{ box.innerHTML='<div class="hint">Couldn’t load backups.</div>'; });
+}
+function restoreBackup(key){
+  if(!window.__fbSnapshotList) return;
+  window.__fbSnapshotList().then(map=>{
+    const s=map[key]; if(!s||!s.data){ toast('That backup is empty'); return; }
+    const when=s.at?new Date(s.at).toLocaleString():key;
+    if(!confirm('Restore the board to the backup from '+when+'?\n\nThis replaces the current shared board for everyone. (The current state is saved as a restore point first, so you can undo.)')) return;
+    doHourlyBackup();          // preserve current state before overwriting
+    applyRemoteState(s.data);  // load into memory + render + cache
+    fbPush();                  // publish the restored state to the shared board
+    closeOverlay('#backupsOverlay'); closeOverlay('#dataOverlay');
+    toast('Restored backup from '+when);
+  });
+}
+setTimeout(doHourlyBackup, 20000);            // capture current state shortly after load
+setInterval(doHourlyBackup, 60*60*1000);      // then every hour
+
 function setFilePill(state){
   const p=$("#filePill"), t=$("#fileTxt");
+  if(!p||!t) return;   // header pill removed — status now shown by the "Live · shared" sync pill
   p.classList.remove('on','err');
   if(state==='linked'){ p.classList.add('on'); t.textContent='Auto-saving to '+(fileHandle?fileHandle.name:'file'); }
   else if(state==='err'){ p.classList.add('err'); t.textContent='Backup file error'; }
@@ -1054,7 +1118,7 @@ $("#mgr_save").addEventListener('click',()=>{
 /* data / backup modal */
 function refreshDataModal(){
   const linked=!!fileHandle;
-  $("#fileStateTxt").textContent = linked ? ('Auto-saving to '+fileHandle.name) : 'Saved on this laptop (browser storage)';
+  $("#fileStateTxt").textContent = linked ? ('Auto-saving to '+fileHandle.name) : 'Shared live board + hourly cloud backups';
   $("#fileStateSub").textContent = linked ? 'Every change is also written to this file.' : 'No backup file linked yet.';
   $("#linkFileBtn").style.display = HAS_FSA ? '' : 'none';
   $("#linkHint").style.display = HAS_FSA ? '' : 'none';
@@ -1109,6 +1173,8 @@ $("#importInput").addEventListener('change',e=>{
   const f=e.target.files[0]; if(!f) return;
   const r=new FileReader(); r.onload=()=>loadImported(r.result); r.readAsText(f); e.target.value='';
 });
+$("#autoBackupBtn").addEventListener('click',openBackupsModal);
+$("#backupsList").addEventListener('click',e=>{ const b=e.target.closest('[data-restore]'); if(b) restoreBackup(b.getAttribute('data-restore')); });
 
 /* delegated table actions */
 document.addEventListener('click',e=>{
@@ -1208,7 +1274,7 @@ $$('nav.tabs button').forEach(btn=>btn.addEventListener('click',()=>{
   $$('nav.tabs button').forEach(x=>x.classList.toggle('active',x===btn));
   TABS.forEach(t=>$("#tab-"+t).classList.toggle('hide',t!==activeTab));
 }));
-document.head.insertAdjacentHTML('beforeend','<style>.hide{display:none!important}</style>');
+document.head.insertAdjacentHTML('beforeend','<style>.hide{display:none!important}.bkrow{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:9px 11px;border:1px solid var(--line);border-radius:9px;margin-bottom:8px}.bkrow .btn{width:auto;flex:0 0 auto}</style>');
 
 /* theme */
 const themeBtn=$("#themeBtn");
@@ -1230,7 +1296,7 @@ setInterval(()=>{ renderStats(); renderOutTab(); }, 60*60*1000);
      (dedicated project + auth) before real customer data is entered. -->
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-app.js";
-import { getDatabase, ref, onValue, set } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-database.js";
+import { getDatabase, ref, onValue, set, get } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-database.js";
 const firebaseConfig = {
   apiKey: "AIzaSyD9AJbPC9M4gpTyvfIoRcqILq0ZOom1OBs",
   authDomain: "bon-echo-bd946.firebaseapp.com",
@@ -1246,6 +1312,10 @@ try{
   const db = getDatabase(app);
   const node = ref(db, SYNC_PATH);
   window.__fbWrite = obj => { set(node, obj).catch(e=>console.warn('fb write',e)); };
+  // hourly-backup helpers (snapshots live under unittracker/backups/<hourKey>)
+  window.__fbSnapshotWrite = (key, val) => { set(ref(db, `unittracker/backups/${key}`), val).catch(e=>console.warn('snap write',e)); };
+  window.__fbSnapshotList  = () => get(ref(db, "unittracker/backups")).then(s=>s.val()||{}).catch(()=>({}));
+  window.__fbSnapshotDelete= (key) => { set(ref(db, `unittracker/backups/${key}`), null).catch(()=>{}); };
   onValue(node, snap => {
     if(window.__setSync) window.__setSync('on');
     if(window.__applyRemote) window.__applyRemote(snap.val());
