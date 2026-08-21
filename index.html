@@ -42,8 +42,8 @@ header h1{font-size:19px;margin:0;font-weight:750;letter-spacing:-.2px;flex:1;mi
 .stat.bad b{color:var(--bad)}
 
 /* tabs */
-nav.tabs{display:flex;gap:6px;background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:5px;margin-bottom:12px;overflow:auto}
-nav.tabs button{flex:1;min-width:104px;border:0;background:transparent;color:var(--muted);font-weight:650;font-size:14px;padding:9px 10px;border-radius:8px;cursor:pointer;white-space:nowrap}
+nav.tabs{display:flex;flex-wrap:wrap;gap:6px;background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:5px;margin-bottom:12px}
+nav.tabs button{flex:1 1 auto;min-width:96px;border:0;background:transparent;color:var(--muted);font-weight:650;font-size:14px;padding:9px 10px;border-radius:8px;cursor:pointer;white-space:nowrap}
 nav.tabs button.active{background:var(--accent);color:var(--accent-ink)}
 
 .panel{background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);padding:14px}
@@ -72,10 +72,14 @@ th,td{text-align:left;padding:9px 11px;border-bottom:1px solid var(--line2);whit
 th{position:sticky;top:0;background:var(--panel2);color:var(--muted);font-size:11.5px;text-transform:uppercase;letter-spacing:.4px;z-index:1}
 tbody tr:hover{background:var(--panel2)}
 td.wrap-cell{white-space:normal;min-width:170px;max-width:300px}
-td.name{white-space:normal;word-break:break-word;max-width:210px;min-width:90px}
+td.name{white-space:nowrap;max-width:none}
 td.acts{white-space:nowrap}
 .empty{text-align:center;color:var(--muted);padding:34px 10px}
 .t-all{min-width:940px}
+/* freeze the Model column so each row stays identifiable while scrolling right */
+.tablewrap td:first-child,.tablewrap th:first-child{position:sticky;left:0;background:var(--panel);z-index:2;border-right:1px solid var(--line)}
+.tablewrap thead th:first-child{background:var(--panel2);z-index:5}
+.tablewrap tbody tr:hover td:first-child{background:var(--panel2)}
 
 .tags{display:flex;flex-wrap:wrap;gap:4px}
 .badge{display:inline-block;font-size:11px;font-weight:700;padding:2px 8px;border-radius:999px;letter-spacing:.2px}
@@ -127,6 +131,30 @@ footer{text-align:center;color:var(--muted);font-size:12px;padding:18px 0 8px}
 .help .tag{display:inline-block;font-weight:700;font-size:11px;padding:2px 9px;border-radius:999px;background:var(--chip);color:var(--muted);vertical-align:middle}
 @media(max-width:640px){ .help .grid{grid-template-columns:1fr} }
 
+/* calendar (Requests tab) */
+.calbar{display:flex;align-items:center;gap:8px;margin-bottom:12px;flex-wrap:wrap}
+.calbar .caltitle{font-size:16px;font-weight:750;min-width:150px;letter-spacing:-.2px}
+.callegend{display:flex;flex-wrap:wrap;gap:12px;margin:0 0 12px;font-size:12px;color:var(--muted)}
+.callegend span{display:inline-flex;align-items:center;gap:6px}
+.callegend i{width:12px;height:12px;border-radius:4px;display:inline-block}
+.calgrid{display:grid;grid-template-columns:repeat(7,1fr);gap:6px}
+.caldow{font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.4px;text-align:center;padding:2px 0}
+.calcell{min-height:90px;border:1px solid var(--line);border-radius:10px;padding:5px 6px;background:var(--panel);display:flex;flex-direction:column;gap:3px;cursor:pointer;overflow:hidden}
+.calcell:hover{border-color:var(--accent)}
+.calcell.other{background:var(--panel2);opacity:.5}
+.calcell.today{border-color:var(--accent);box-shadow:inset 0 0 0 1px var(--accent)}
+.calcell .dnum{font-size:12px;font-weight:700;color:var(--muted)}
+.calcell.today .dnum{color:var(--accent)}
+.calev{font-size:10.5px;font-weight:650;padding:2px 6px;border-radius:5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;line-height:1.3}
+.calev.out{background:var(--warnbg);color:var(--warn)}
+.calev.overdue{background:var(--badbg);color:var(--bad)}
+.calev.request{background:var(--infobg);color:var(--info)}
+.calev.longterm{background:var(--ltbg);color:var(--lt)}
+.calmore{font-size:10px;color:var(--muted);font-weight:650}
+.dayrow{display:flex;justify-content:space-between;align-items:flex-start;gap:10px;border:1px solid var(--line);border-radius:9px;padding:8px 10px;margin-bottom:8px}
+.dayrow .rowacts{flex:0 0 auto}
+@media(max-width:560px){ .calcell{min-height:62px;padding:3px 4px} .calev{font-size:9.5px;padding:1px 4px} .caldow{font-size:10px} }
+
 @media(max-width:720px){
   .grid2{grid-template-columns:1fr}
   header h1{font-size:17px}
@@ -147,6 +175,7 @@ footer{text-align:center;color:var(--muted);font-size:12px;padding:18px 0 8px}
   <nav class="tabs">
     <button data-tab="all" class="active">All Units</button>
     <button data-tab="out">Out on Loan</button>
+    <button data-tab="requests">📅 Requests</button>
     <button data-tab="longterm">Long-Term</button>
     <button data-tab="tfs">TFS Support</button>
     <button data-tab="returned">Returned</button>
@@ -161,6 +190,7 @@ footer{text-align:center;color:var(--muted);font-size:12px;padding:18px 0 8px}
       <label class="checkline"><input type="checkbox" id="fTFS"> TFS</label>
       <label class="checkline"><input type="checkbox" id="fFromUS"> US→CA</label>
       <select id="fStatus" style="width:auto"><option value="">All placements</option><option value="in">In-house</option><option value="out">Out (short-term)</option><option value="longterm">Long-term</option></select>
+      <button class="btn ghost sm" id="manageLocBtn">⚙ Locations</button>
       <button class="btn ghost sm" id="exportAll">⬇ CSV</button>
       <button class="btn" id="addUnitBtn">＋ Add Unit</button>
     </div>
@@ -190,6 +220,31 @@ footer{text-align:center;color:var(--muted);font-size:12px;padding:18px 0 8px}
         <tbody id="outBody"></tbody>
       </table>
     </div>
+  </section>
+
+  <!-- REQUESTS / CALENDAR -->
+  <section id="tab-requests" class="panel hide">
+    <div class="toolbar">
+      <select id="reqUnitPick" class="grow"></select>
+      <button class="btn info" id="reqNewBtn">＋ New request</button>
+      <button class="btn ghost sm" id="exportReq">⬇ CSV</button>
+    </div>
+    <div class="calbar">
+      <button class="btn ghost sm" id="calPrev" title="Previous month">‹</button>
+      <button class="btn ghost sm" id="calToday">Today</button>
+      <button class="btn ghost sm" id="calNext" title="Next month">›</button>
+      <div class="caltitle" id="calTitle"></div>
+    </div>
+    <div class="callegend">
+      <span><i style="background:var(--warn)"></i>Out on loan</span>
+      <span><i style="background:var(--bad)"></i>Overdue</span>
+      <span><i style="background:var(--info)"></i>Request / reservation</span>
+      <span><i style="background:var(--lt)"></i>Long-term start</span>
+    </div>
+    <div class="calgrid" id="calDows"></div>
+    <div class="calgrid" id="calGrid" style="margin-top:6px"></div>
+    <h2 style="font-size:15px;margin:20px 0 10px;padding-bottom:6px;border-bottom:1px solid var(--line);letter-spacing:-.2px">Upcoming &amp; active requests</h2>
+    <div id="reqList"></div>
   </section>
 
   <!-- LONG-TERM -->
@@ -247,12 +302,13 @@ footer{text-align:center;color:var(--muted);font-size:12px;padding:18px 0 8px}
   <section id="tab-help" class="panel hide">
     <div class="help">
       <h2>What this is</h2>
-      <p class="lead">A loaner-unit tracker shared live with your team — everyone with the link sees the same board, updating in real time, and it's backed up to the cloud automatically every hour. <span class="tag">Version 3.2</span></p>
+      <p class="lead">A loaner-unit tracker shared live with your team — everyone with the link sees the same board, updating in real time, and it's backed up to the cloud automatically every hour. <span class="tag">Version 3.3</span></p>
 
       <h2>The tabs</h2>
       <div class="grid">
         <div class="card"><h3>All Units</h3><p class="lead">The complete master list of every device. Nothing ever leaves it — the other tabs are just filtered views. Add units, tag them, set where each one is, and reserve future loans.</p></div>
         <div class="card"><h3>Out on Loan</h3><p class="lead">Short-term loans only, kept lean. Watch <b>Days Left</b> for what’s due soon or overdue.</p></div>
+        <div class="card"><h3>📅 Requests</h3><p class="lead">A colour-coded month <b>calendar</b> of everything scheduled — out-on-loan windows, reservations and overdue units — plus a list of upcoming requests. Click any day to see the details.</p></div>
         <div class="card"><h3>Long-Term</h3><p class="lead">Permanent / long-term loans, with the holder, the responsible account manager, and a since-date.</p></div>
         <div class="card"><h3>TFS Support</h3><p class="lead">A <b>tag</b>, like “On account.” Any unit can be marked TFS and still be in-house, out, or long-term.</p></div>
         <div class="card"><h3>Returned</h3><p class="lead">A history log of completed short-term loans, plus units removed from the master list (with the reason).</p></div>
@@ -271,7 +327,11 @@ footer{text-align:center;color:var(--muted);font-size:12px;padding:18px 0 8px}
       <h2>Everyday tasks</h2>
       <div class="card">
         <h3>➕ Add a unit</h3>
-        <p>On <b>All Units</b>, click <kbd>＋ Add Unit</kbd> → enter <b>Model</b> and <b>Serial Number</b> → tick any of <b>On account</b>, <b>TFS Support</b>, <b>From US → Canada</b> → <b>Save</b>. If a unit with the same model + serial already exists, you’ll get a warning first.</p>
+        <p>On <b>All Units</b>, click <kbd>＋ Add Unit</kbd> → enter <b>Model</b> and <b>Serial Number</b> → pick a <b>Location</b> and tick any of <b>On account</b>, <b>TFS Support</b>, <b>From US → Canada</b> → <b>Save</b>. If a unit with the same model + serial already exists, you’ll get a warning first.</p>
+      </div>
+      <div class="card">
+        <h3>📍 In-house location</h3>
+        <p>Every unit has a <b>Location</b> — where it’s kept while it’s in-house. Set it on the <b>Add</b> / <b>Edit</b> screen, and you’ll be asked for it again when you <b>Return</b> a unit. In-house units show their location on the All Units tab. The location list is a dropdown you control: on <b>All Units</b> click <kbd>⚙ Locations</kbd> to add, rename, or remove places.</p>
       </div>
       <div class="card">
         <h3>📤 Short-term loan</h3>
@@ -283,7 +343,7 @@ footer{text-align:center;color:var(--muted);font-size:12px;padding:18px 0 8px}
       </div>
       <div class="card">
         <h3>📅 Reserve / request a loan</h3>
-        <p>In the <b>Requests</b> column on All Units (or Out on Loan), click <kbd>＋ Reserve</kbd>. Enter the <b>requested start date</b> and <b>days on loan</b>, plus customer / account manager / notes. You can reserve a unit even while it’s out on loan — as long as the dates don’t overlap. If they do, a warning pops up naming the conflict and lets you save anyway or change the dates. The button then shows how many requests a unit has and the next date.</p>
+        <p>In the <b>Requests</b> column on All Units (or Out on Loan), click <kbd>＋ Reserve</kbd>. Enter the <b>requested start date</b> and <b>days on loan</b>, plus customer / account manager / notes. You can reserve a unit even while it’s out on loan — as long as the dates don’t overlap. If they do, a warning pops up naming the conflict and lets you save anyway or change the dates. The button then shows how many requests a unit has and the next date. Every request also appears on the <b>📅 Requests</b> calendar — or start one there by picking a unit and clicking <kbd>＋ New request</kbd>.</p>
       </div>
       <div class="card">
         <h3>📥 Return a short-term loan</h3>
@@ -343,7 +403,7 @@ footer{text-align:center;color:var(--muted);font-size:12px;padding:18px 0 8px}
     </div>
   </section>
 
-  <footer id="footer">Loaner Unit Tracker · v3.2 · shared live board · auto-synced + hourly cloud backups</footer>
+  <footer id="footer">Loaner Unit Tracker · v3.3 · shared live board · auto-synced + hourly cloud backups</footer>
 </div>
 
 <!-- Add / Edit unit modal -->
@@ -355,6 +415,7 @@ footer{text-align:center;color:var(--muted);font-size:12px;padding:18px 0 8px}
       <div class="field"><label>Model</label><input id="u_model" placeholder="e.g. Acme X200"></div>
       <div class="field"><label>Serial Number</label><input id="u_serial" placeholder="e.g. SN-00A12"></div>
     </div>
+    <div class="field"><label>Location <span class="hint">(where it's kept while in-house)</span></label><select id="u_location"></select></div>
     <div class="field"><label class="checkline"><input type="checkbox" id="u_account"> On our account (owned / registered to us)</label></div>
     <div class="field"><label class="checkline"><input type="checkbox" id="u_tfs"> TFS Support unit</label></div>
     <div class="field"><label class="checkline"><input type="checkbox" id="u_us"> On loan from the US → Canada (our department)</label></div>
@@ -417,6 +478,7 @@ footer{text-align:center;color:var(--muted);font-size:12px;padding:18px 0 8px}
       <div class="field"><label>Service Order #</label><input id="r_service"></div>
       <div class="field"><label>Courier <span class="hint">(if different)</span></label><select id="r_courier"><option value="">— select —</option><option>Purolator</option><option>FedEx</option><option>UPS</option><option>LTL</option><option>Customer</option></select></div>
     </div>
+    <div class="field"><label>In-House Location <span class="hint">(where it's going now)</span></label><select id="r_location"></select></div>
     <div class="modal-actions">
       <button class="btn ghost" data-close>Cancel</button>
       <button class="btn ok" id="r_save">Confirm Return</button>
@@ -481,6 +543,32 @@ footer{text-align:center;color:var(--muted);font-size:12px;padding:18px 0 8px}
   </div>
 </div>
 
+<!-- Manage in-house locations modal -->
+<div class="overlay" id="manageLocOverlay">
+  <div class="modal">
+    <h3>In-House Locations</h3>
+    <div class="sub">These names fill the Location dropdowns for in-house units. Editing them here doesn’t change locations already saved on units.</div>
+    <div id="locRows"></div>
+    <button class="btn ghost sm" id="locAdd" style="margin-top:2px">＋ Add location</button>
+    <div class="modal-actions">
+      <button class="btn ghost" data-close>Cancel</button>
+      <button class="btn" id="loc_save">Save list</button>
+    </div>
+  </div>
+</div>
+
+<!-- Day detail modal (calendar) -->
+<div class="overlay" id="dayOverlay">
+  <div class="modal">
+    <h3 id="dayTitle">Day</h3>
+    <div class="sub">Everything scheduled on this date.</div>
+    <div id="dayList" style="max-height:56vh;overflow:auto;margin:6px 0 8px"></div>
+    <div class="modal-actions">
+      <button class="btn ghost" data-close>Close</button>
+    </div>
+  </div>
+</div>
+
 <!-- Data / backup modal -->
 <div class="overlay" id="dataOverlay">
   <div class="modal">
@@ -538,10 +626,12 @@ const esc=s=>String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;'
 const LS_KEY="unittracker_data";
 const DEFAULT_MANAGERS=['Rosemary Sonsini','Richard Bourbonniere','Jim Seto','Mo Russell','Errol Bailey','Martin Lindsay','Terry Irvin','Lauren Padua','Simon Wong','Shajal Jamal','Vanessa Wong'];
 const MGR_SEED=1;          // bump when new default managers ship; triggers a one-time merge into existing saved lists
+const DEFAULT_LOCATIONS=['Storage Room','Service Bench','Front Office','Warehouse','Demo Room'];  // editable placeholder list — rename to your real spots
 const COURIERS=['Purolator','FedEx','UPS','LTL','Customer'];
 const MONTHS=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
 let UNITS={};              // id -> unit
 let MANAGERS=[];           // account manager names (editable)
+let LOCATIONS=[];          // in-house location names (editable)
 let ARCHIVE=[];            // history records kept after a unit is removed from the master list
 let mgrSeedApplied=0;      // which MGR_SEED has been merged into the stored manager list
 let activeTab="all";
@@ -550,7 +640,7 @@ let fileHandle=null;       // linked backup file (File System Access API)
 const HAS_FSA = !!(window.showSaveFilePicker && window.showOpenFilePicker);
 
 /* unit shape:
- { id, model, serial, onAccount:bool, tfs:bool, fromUS:bool, status:'in'|'out'|'longterm',
+ { id, model, serial, onAccount:bool, tfs:bool, fromUS:bool, location:string, status:'in'|'out'|'longterm',
    loan:{customer,manager,left,courier,waybill,start,expiry,comments}|null,
    longterm:{holder,type,manager,since,notes}|null,
    reservations:[ {id,start,days,customer,manager,notes} ],
@@ -570,6 +660,7 @@ function normalizeUnits(){
   Object.values(UNITS).forEach(u=>{
     if(u.tfs===undefined) u.tfs=false;
     if(u.fromUS===undefined) u.fromUS=false;
+    if(u.location===undefined) u.location='';
     if(u.longterm===undefined) u.longterm=null;
     if(!Array.isArray(u.reservations)) u.reservations=[];
     if(!Array.isArray(u.history)) u.history=[];
@@ -579,11 +670,11 @@ function normalizeUnits(){
 }
 
 /* ===== persistence (local + optional backup file) ===== */
-function dataObject(){ return { app:"loaner-unit-tracker", version:3, savedAt:new Date().toISOString(), units:UNITS, managers:MANAGERS, archive:ARCHIVE, mgrSeed:mgrSeedApplied }; }
+function dataObject(){ return { app:"loaner-unit-tracker", version:3, savedAt:new Date().toISOString(), units:UNITS, managers:MANAGERS, locations:LOCATIONS, archive:ARCHIVE, mgrSeed:mgrSeedApplied }; }
 function saveLocal(){ try{ localStorage.setItem(LS_KEY, JSON.stringify(dataObject())); }catch(e){ console.warn('localStorage full/blocked',e); } }
 function loadLocal(){
   let loaded=false;
-  try{ const raw=localStorage.getItem(LS_KEY); if(raw){ const o=JSON.parse(raw); if(o&&o.units){ UNITS=o.units; if(Array.isArray(o.managers)) MANAGERS=o.managers.slice(); if(Array.isArray(o.archive)) ARCHIVE=o.archive.slice(); if(typeof o.mgrSeed==='number') mgrSeedApplied=o.mgrSeed; loaded=true; } } }catch(e){}
+  try{ const raw=localStorage.getItem(LS_KEY); if(raw){ const o=JSON.parse(raw); if(o&&o.units){ UNITS=o.units; if(Array.isArray(o.managers)) MANAGERS=o.managers.slice(); if(Array.isArray(o.locations)) LOCATIONS=o.locations.slice(); if(Array.isArray(o.archive)) ARCHIVE=o.archive.slice(); if(typeof o.mgrSeed==='number') mgrSeedApplied=o.mgrSeed; loaded=true; } } }catch(e){}
   if(!loaded){ // migrate from earlier build's cache key if present
     try{ const old=localStorage.getItem('unittracker_cache'); if(old){ const c=JSON.parse(old); if(c&&c.units) UNITS=c.units; } }catch(e){}
   }
@@ -594,6 +685,7 @@ function loadLocal(){
     DEFAULT_MANAGERS.forEach(m=>{ if(!have.has(m.trim().toLowerCase())) MANAGERS.push(m); });
   }
   mgrSeedApplied=MGR_SEED;
+  if(!LOCATIONS.length) LOCATIONS=DEFAULT_LOCATIONS.slice();
   normalizeUnits();
 }
 async function saveFile(){
@@ -610,13 +702,15 @@ function persist(){ saveLocal(); if(fileHandle) saveFile(); fbPush(); }
 
 /* ===== cloud sync (shared board via Firebase Realtime DB) ===== */
 let pendingRemote=null, lastPushCanon='';
-function canonState(o){ try{ return JSON.stringify({u:(o&&o.units)||{},m:(o&&o.managers)||[],a:(o&&o.archive)||[],s:(o&&o.mgrSeed)||0}); }catch(e){ return ''; } }
+function canonState(o){ try{ return JSON.stringify({u:(o&&o.units)||{},m:(o&&o.managers)||[],l:(o&&o.locations)||[],a:(o&&o.archive)||[],s:(o&&o.mgrSeed)||0}); }catch(e){ return ''; } }
 function anyModalOpen(){ return !!document.querySelector('.overlay.show'); }
 function fbPush(){ if(!window.__fbWrite) return; const obj=dataObject(); lastPushCanon=canonState(obj); try{ window.__fbWrite(obj); }catch(e){ console.warn('fbPush',e); } }
 function applyRemoteState(v){
   try{
     UNITS = (v.units && typeof v.units==='object') ? v.units : {};
     MANAGERS = (Array.isArray(v.managers) && v.managers.length) ? v.managers.slice() : DEFAULT_MANAGERS.slice();
+    if(Array.isArray(v.locations)) LOCATIONS=v.locations.slice();
+    if(!LOCATIONS.length) LOCATIONS=DEFAULT_LOCATIONS.slice();
     ARCHIVE = Array.isArray(v.archive) ? v.archive.slice() : [];
     if(typeof v.mgrSeed==='number') mgrSeedApplied=v.mgrSeed;
     normalizeUnits();
@@ -731,6 +825,16 @@ function managerOptions(sel){
 }
 function fillManagerSelect(id,sel){ $(id).innerHTML=managerOptions(sel||''); }
 
+/* dropdown options for in-house locations */
+function locationOptions(sel){
+  const opts=['<option value="">— none —</option>']
+    .concat(LOCATIONS.map(l=>`<option value="${esc(l)}"${l===sel?' selected':''}>${esc(l)}</option>`));
+  // keep a location that was saved before it was removed from the list, so it isn't silently lost
+  if(sel && !LOCATIONS.some(l=>l===sel)) opts.push(`<option value="${esc(sel)}" selected>${esc(sel)} (not in list)</option>`);
+  return opts.join('');
+}
+function fillLocationSelect(id,sel){ $(id).innerHTML=locationOptions(sel||''); }
+
 /* ===== stats ===== */
 function renderStats(){
   const arr=unitsArr();
@@ -753,7 +857,7 @@ function renderStats(){
 function placementCell(u){
   if(u.status==='out'){ const c=u.loan&&u.loan.customer?(' '+esc(u.loan.customer)):''; return `<span class="badge out">OUT</span>${c}`; }
   if(u.status==='longterm'){ const lt=u.longterm||{}; const who=lt.holder||lt.type||'Long-term'; return `<span class="badge lt">LONG-TERM</span> ${esc(who)}`; }
-  return `<span class="badge in">IN-HOUSE</span>`;
+  return `<span class="badge in">IN-HOUSE</span>${u.location?(' '+esc(u.location)):''}`;
 }
 function tagsCell(u){
   const t=[];
@@ -912,7 +1016,102 @@ function renderReturnedTab(){
   }).join('');
 }
 
-function renderAll(){ renderStats(); renderAllTab(); renderOutTab(); renderLongTermTab(); renderTFSTab(); renderReturnedTab(); }
+/* ===== render: REQUESTS + CALENDAR ===== */
+let calY=null, calM=null;                 // month currently shown (calM is 0-based)
+function calInit(){ const d=new Date(); calY=d.getFullYear(); calM=d.getMonth(); }
+function pad2(n){ return String(n).padStart(2,'0'); }
+function isoOf(y,m,d){ return `${y}-${pad2(m+1)}-${pad2(d)}`; }
+
+/* every dated thing worth showing on the calendar */
+function calendarEvents(){
+  const evs=[];
+  unitsArr().forEach(u=>{
+    const label=(u.model||'?')+(u.serial?(' '+u.serial):'');
+    if(u.status==='out'&&u.loan&&u.loan.start){
+      const end=u.loan.expiry||u.loan.start;
+      const overdue=u.loan.expiry&&daysUntil(u.loan.expiry)<0;
+      evs.push({start:u.loan.start,end,type:overdue?'overdue':'out',unitId:u.id,label,customer:u.loan.customer,manager:u.loan.manager});
+    }
+    (u.reservations||[]).forEach(r=>{
+      if(!r.start) return;
+      evs.push({start:r.start,end:addDaysISO(r.start,r.days),type:'request',unitId:u.id,label,customer:r.customer,manager:r.manager,notes:r.notes});
+    });
+    if(u.status==='longterm'&&u.longterm&&u.longterm.since){
+      evs.push({start:u.longterm.since,end:u.longterm.since,type:'longterm',unitId:u.id,label,customer:u.longterm.holder,manager:u.longterm.manager});
+    }
+  });
+  return evs;
+}
+function dayEventsFor(iso,evs){ return (evs||calendarEvents()).filter(e=>e.start<=iso&&iso<=e.end); }
+
+function renderCalendar(){
+  if(calY==null) calInit();
+  $("#calDows").innerHTML=['Sun','Mon','Tue','Wed','Thu','Fri','Sat'].map(d=>`<div class="caldow">${d}</div>`).join('');
+  $("#calTitle").textContent=new Date(calY,calM,1).toLocaleDateString(undefined,{month:'long',year:'numeric'});
+  const startDow=new Date(calY,calM,1).getDay();
+  const startDate=new Date(calY,calM,1-startDow);        // the Sunday on/before the 1st
+  const today=todayISO(), evs=calendarEvents(), cells=[];
+  for(let i=0;i<42;i++){                                 // fixed 6-week grid
+    const dt=new Date(startDate); dt.setDate(startDate.getDate()+i);
+    const iso=isoOf(dt.getFullYear(),dt.getMonth(),dt.getDate());
+    const other=dt.getMonth()!==calM;
+    const de=dayEventsFor(iso,evs);
+    const shown=de.slice(0,3), more=de.length-shown.length;
+    cells.push(`<div class="calcell${other?' other':''}${iso===today?' today':''}" data-calday="${iso}">
+      <div class="dnum">${dt.getDate()}</div>
+      ${shown.map(e=>`<div class="calev ${e.type}" title="${esc(e.label)}">${esc(e.label)}</div>`).join('')}
+      ${more>0?`<div class="calmore">+${more} more</div>`:''}
+    </div>`);
+  }
+  $("#calGrid").innerHTML=cells.join('');
+}
+
+function openDayModal(iso){
+  const de=dayEventsFor(iso).sort((a,b)=>a.type.localeCompare(b.type)||a.label.localeCompare(b.label));
+  $("#dayTitle").textContent=fmtDate(iso);
+  const box=$("#dayList");
+  if(!de.length){ box.innerHTML='<div class="hint">Nothing scheduled on this day.</div>'; }
+  else box.innerHTML=de.map(e=>{
+    const tag=e.type==='request'?'Request':e.type==='longterm'?'Long-term start':e.type==='overdue'?'Out (overdue)':'Out on loan';
+    const who=e.customer||'';
+    const range=(e.start===e.end)?'':(fmtDate(e.start)+' → '+fmtDate(e.end));
+    const meta=[who,range,e.manager,e.notes].filter(Boolean).map(esc).join(' · ');
+    return `<div class="dayrow">
+      <div><span class="calev ${e.type}" style="display:inline-block">${tag}</span> <b>${esc(e.label)}</b>
+      ${meta?`<div class="hint">${meta}</div>`:''}</div>
+      <button class="btn ghost sm" data-dayopen="${e.unitId}">Open</button>
+    </div>`;
+  }).join('');
+  openOverlay('#dayOverlay');
+}
+
+function fillReqUnitPick(){
+  const arr=unitsArr().sort((a,b)=>(a.model||'').localeCompare(b.model||'')||(a.serial||'').localeCompare(b.serial||''));
+  $("#reqUnitPick").innerHTML='<option value="">— choose a unit to reserve —</option>'
+    +arr.map(u=>`<option value="${u.id}">${esc((u.model||'?')+' · '+(u.serial||''))}</option>`).join('');
+}
+function renderReqList(){
+  const today=todayISO(), rows=[];
+  unitsArr().forEach(u=>(u.reservations||[]).forEach(r=>{ if(!r.start) return; const end=addDaysISO(r.start,r.days); if(end>=today) rows.push({u,r,end}); }));
+  rows.sort((a,b)=>a.r.start.localeCompare(b.r.start));
+  const box=$("#reqList");
+  if(!rows.length){ box.innerHTML='<div class="empty">No upcoming requests. Pick a unit above and click <b>＋ New request</b>.</div>'; return; }
+  box.innerHTML=rows.map(({u,r,end})=>{
+    const active=r.start<=today&&today<=end;
+    const meta=[`<b>${fmtDate(r.start)} → ${fmtDate(end)}</b> · ${r.days} day${r.days==1?'':'s'}`,esc(r.customer||''),esc(r.manager||''),esc(r.notes||'')].filter(x=>x&&x!=='').join(' · ');
+    return `<div class="dayrow">
+      <div><b>${esc(u.model||'—')}</b> <span class="mono hint">${esc(u.serial||'')}</span> ${active?'<span class="badge out">ACTIVE</span>':''}
+      <div class="hint">${meta}</div></div>
+      <div class="rowacts">
+        <button class="btn info sm" data-reserve="${u.id}">View</button>
+        <button class="btn danger sm" data-resdel="${u.id}:${r.id}">✕</button>
+      </div>
+    </div>`;
+  }).join('');
+}
+function renderRequestsTab(){ fillReqUnitPick(); renderCalendar(); renderReqList(); }
+
+function renderAll(){ renderStats(); renderAllTab(); renderOutTab(); renderRequestsTab(); renderLongTermTab(); renderTFSTab(); renderReturnedTab(); }
 
 /* ===== modals ===== */
 function openOverlay(id){ $(id).classList.add('show'); }
@@ -927,6 +1126,7 @@ function openUnitModal(id){
   $("#unitTitle").textContent=id?'Edit Unit':'Add Unit';
   $("#u_model").value=u?u.model||'':'';
   $("#u_serial").value=u?u.serial||'':'';
+  fillLocationSelect('#u_location', u?u.location||'':'');
   $("#u_account").checked=u?!!u.onAccount:false;
   $("#u_tfs").checked=u?!!u.tfs:false;
   $("#u_us").checked=u?!!u.fromUS:false;
@@ -942,10 +1142,10 @@ $("#u_save").addEventListener('click',()=>{
       && (x.serial||'').trim().toLowerCase()===serial.toLowerCase());
   if(dup){ if(!confirm(`⚠ A unit with this Model and Serial already exists:\n\n${dup.model||'(no model)'} · ${dup.serial||'(no serial)'}\n\nSave this one anyway?`)) return; }
   if(editingUnitId){
-    const u=UNITS[editingUnitId]; u.model=model; u.serial=serial; u.onAccount=$("#u_account").checked; u.tfs=$("#u_tfs").checked; u.fromUS=$("#u_us").checked;
+    const u=UNITS[editingUnitId]; u.model=model; u.serial=serial; u.location=$("#u_location").value; u.onAccount=$("#u_account").checked; u.tfs=$("#u_tfs").checked; u.fromUS=$("#u_us").checked;
     persist(); toast('Unit updated');
   }else{
-    const u={id:uid(),model,serial,onAccount:$("#u_account").checked,tfs:$("#u_tfs").checked,fromUS:$("#u_us").checked,status:'in',loan:null,longterm:null,reservations:[],history:[]};
+    const u={id:uid(),model,serial,location:$("#u_location").value,onAccount:$("#u_account").checked,tfs:$("#u_tfs").checked,fromUS:$("#u_us").checked,status:'in',loan:null,longterm:null,reservations:[],history:[]};
     UNITS[u.id]=u; persist(); toast('Unit added');
   }
   closeOverlay('#unitOverlay'); renderAll();
@@ -1001,6 +1201,7 @@ function openReturnModal(id){
   returnUnitId=id; const u=UNITS[id]; if(!u||!u.loan) return;
   $("#returnUnitLabel").innerHTML=`<b>${esc(u.model||'')}</b> · ${esc(u.serial||'')} — to ${esc(u.loan.customer||'—')}`;
   $("#r_waybill").value=''; $("#r_date").value=todayISO(); $("#r_service").value=''; $("#r_courier").value=u.loan.courier||'';
+  fillLocationSelect('#r_location', u.location||'');
   openOverlay('#returnOverlay'); setTimeout(()=>$("#r_waybill").focus(),50);
 }
 $("#r_save").addEventListener('click',()=>{
@@ -1010,7 +1211,7 @@ $("#r_save").addEventListener('click',()=>{
     start:L.start, expiry:L.expiry, comments:L.comments,
     inWaybill:$("#r_waybill").value.trim(), returned:$("#r_date").value||todayISO(), service:$("#r_service").value.trim() };
   u.history=u.history||[]; u.history.push(rec);
-  u.loan=null; u.status='in';
+  u.loan=null; u.status='in'; u.location=$("#r_location").value;
   persist(); closeOverlay('#returnOverlay'); renderAll(); toast('Marked returned');
 });
 
@@ -1115,6 +1316,22 @@ $("#mgr_save").addEventListener('click',()=>{
   MANAGERS=list; persist(); closeOverlay('#manageMgrOverlay'); renderAll(); toast('Account managers saved');
 });
 
+/* manage in-house locations */
+function locInputVals(){ return Array.from($$('#locRows input[data-loc]')).map(i=>i.value); }
+function renderLocationRows(list){
+  const arr=list||LOCATIONS.slice();
+  $("#locRows").innerHTML = arr.length
+    ? arr.map((m,i)=>`<div style="display:flex;gap:8px;margin-bottom:8px"><input value="${esc(m)}" data-loc="${i}" placeholder="Location"><button class="btn danger sm" data-locdel="${i}">✕</button></div>`).join('')
+    : '<div class="hint" style="margin-bottom:8px">No locations yet — add one below.</div>';
+}
+$("#manageLocBtn").addEventListener('click',()=>{ renderLocationRows(); openOverlay('#manageLocOverlay'); });
+$("#locAdd").addEventListener('click',()=>{ renderLocationRows(locInputVals().concat([''])); });
+$("#loc_save").addEventListener('click',()=>{
+  const seen=new Set(); const list=[];
+  locInputVals().forEach(v=>{ const t=v.trim(); if(t&&!seen.has(t.toLowerCase())){ seen.add(t.toLowerCase()); list.push(t); } });
+  LOCATIONS=list; persist(); closeOverlay('#manageLocOverlay'); renderAll(); toast('Locations saved');
+});
+
 /* data / backup modal */
 function refreshDataModal(){
   const linked=!!fileHandle;
@@ -1157,6 +1374,8 @@ function loadImported(text){
   if(!confirm('Replace everything currently on screen with the contents of this backup file?')) return;
   UNITS=units;
   MANAGERS = (o && Array.isArray(o.managers) && o.managers.length) ? o.managers.slice() : DEFAULT_MANAGERS.slice();
+  if(o && Array.isArray(o.locations)) LOCATIONS=o.locations.slice();
+  if(!LOCATIONS.length) LOCATIONS=DEFAULT_LOCATIONS.slice();
   ARCHIVE = (o && Array.isArray(o.archive)) ? o.archive.slice() : [];
   normalizeUnits();
   persist(); renderAll(); closeOverlay('#dataOverlay'); toast('Backup restored');
@@ -1208,6 +1427,11 @@ document.addEventListener('click',e=>{
     const vals=mgrInputVals(); vals.splice(+b.dataset.mgrdel,1); renderManagerRows(vals);
     return;
   }
+  if(b.dataset.locdel){
+    const vals=locInputVals(); vals.splice(+b.dataset.locdel,1); renderLocationRows(vals);
+    return;
+  }
+  if(b.dataset.dayopen){ closeOverlay('#dayOverlay'); openReserveModal(b.dataset.dayopen); return; }
   if(b.dataset.archdel){
     if(!confirm('Permanently delete this archived record from the Returned tab?')) return;
     ARCHIVE.splice(+b.dataset.archdel,1); persist(); renderAll(); toast('Record deleted');
@@ -1236,10 +1460,10 @@ function csv(rows){ return rows.map(r=>r.map(c=>{ const s=String(c==null?'':c); 
 function download(name,text){ const blob=new Blob([text],{type:'text/csv'}); const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download=name; a.click(); setTimeout(()=>URL.revokeObjectURL(a.href),1000); }
 function nextReq(u){ const rs=(u.reservations||[]).slice().sort((a,b)=>a.start.localeCompare(b.start)); return rs.length?fmtDate(rs[0].start):''; }
 $("#exportAll").addEventListener('click',()=>{
-  const rows=[['Model','Serial','On Account','TFS','From US','Placement','Account Manager','Open Requests','Next Request','Total Loans']];
+  const rows=[['Model','Serial','On Account','TFS','From US','Placement','Location','Account Manager','Open Requests','Next Request','Total Loans']];
   unitsArr().forEach(u=>{
     const place=u.status==='out'?('Out: '+(u.loan&&u.loan.customer||'')):u.status==='longterm'?('Long-term: '+((u.longterm&&(u.longterm.holder||u.longterm.type))||'')):'In-house';
-    rows.push([u.model,u.serial,u.onAccount?'Yes':'No',u.tfs?'Yes':'No',u.fromUS?'Yes':'No',place,unitManager(u),(u.reservations||[]).length,nextReq(u),(u.history||[]).length+(u.status==='out'?1:0)]);
+    rows.push([u.model,u.serial,u.onAccount?'Yes':'No',u.tfs?'Yes':'No',u.fromUS?'Yes':'No',place,(u.status==='in'?(u.location||''):''),unitManager(u),(u.reservations||[]).length,nextReq(u),(u.history||[]).length+(u.status==='out'?1:0)]);
   });
   download('all-units.csv',csv(rows)); toast('Exported');
 });
@@ -1266,9 +1490,24 @@ $("#exportRet").addEventListener('click',()=>{
   returnedRows().forEach(({h,archived})=>rows.push([h.model||'',h.serial||'',h.customer,h.manager,fmtDate(h.left),h.courier,h.waybill,h.inWaybill,fmtDate(h.returned),h.service,archived?('REMOVED: '+(h.reason||'')):'']));
   download('returned-units.csv',csv(rows)); toast('Exported');
 });
+$("#exportReq").addEventListener('click',()=>{
+  const rows=[['Model','Serial','Start','End','Days','Customer','Account Manager','Notes','Status']];
+  const today=todayISO();
+  unitsArr().forEach(u=>(u.reservations||[]).forEach(r=>{ if(!r.start) return; const end=addDaysISO(r.start,r.days);
+    const st=end<today?'Past':(r.start<=today?'Active':'Upcoming');
+    rows.push([u.model,u.serial,fmtDate(r.start),fmtDate(end),r.days,r.customer,r.manager,r.notes,st]); }));
+  download('loan-requests.csv',csv(rows)); toast('Exported');
+});
+
+/* calendar navigation + interactions */
+$("#calPrev").addEventListener('click',()=>{ if(calY==null)calInit(); calM--; if(calM<0){calM=11;calY--;} renderCalendar(); });
+$("#calNext").addEventListener('click',()=>{ if(calY==null)calInit(); calM++; if(calM>11){calM=0;calY++;} renderCalendar(); });
+$("#calToday").addEventListener('click',()=>{ calInit(); renderCalendar(); });
+$("#calGrid").addEventListener('click',e=>{ const c=e.target.closest('[data-calday]'); if(c) openDayModal(c.getAttribute('data-calday')); });
+$("#reqNewBtn").addEventListener('click',()=>{ const id=$("#reqUnitPick").value; if(!id){ toast('Choose a unit first'); return; } openReserveModal(id); });
 
 /* tabs */
-const TABS=['all','out','longterm','tfs','returned','help'];
+const TABS=['all','out','requests','longterm','tfs','returned','help'];
 $$('nav.tabs button').forEach(btn=>btn.addEventListener('click',()=>{
   activeTab=btn.dataset.tab;
   $$('nav.tabs button').forEach(x=>x.classList.toggle('active',x===btn));
