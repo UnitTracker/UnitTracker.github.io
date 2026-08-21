@@ -174,6 +174,36 @@ footer{text-align:center;color:var(--muted);font-size:12px;padding:18px 0 8px}
   .grid2{grid-template-columns:1fr}
   header h1{font-size:17px}
 }
+
+/* ===== view-only "lite" phone app (?view) ===== */
+#tab-lite{display:none}
+body.viewonly nav.tabs{display:none}
+body.viewonly section.panel{display:none}
+body.viewonly #tab-lite{display:block}
+body.viewonly #dataBtn{display:none}
+.viewbadge{font-size:11px;font-weight:700;padding:5px 10px;border-radius:999px;background:var(--infobg);color:var(--info);white-space:nowrap}
+#installBtn{display:none}
+.litebar{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:10px}
+.litebar .grow{flex:1;min-width:150px}
+.chiprow{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:14px}
+.fchip{border:1px solid var(--line);background:var(--panel);color:var(--muted);font-weight:650;font-size:13px;padding:7px 13px;border-radius:999px;cursor:pointer}
+.fchip.on{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
+.cards{display:grid;grid-template-columns:1fr;gap:9px}
+@media(min-width:640px){ .cards{grid-template-columns:1fr 1fr} }
+@media(min-width:1040px){ .cards{grid-template-columns:1fr 1fr 1fr} }
+.ucard{border:1px solid var(--line);border-left-width:4px;border-radius:12px;background:var(--panel);padding:11px 13px;box-shadow:var(--shadow)}
+.ucard .top{display:flex;justify-content:space-between;align-items:flex-start;gap:8px}
+.ucard .mdl{font-weight:800;font-size:15.5px;letter-spacing:-.2px;line-height:1.2}
+.ucard .ser{font-size:12.5px;color:var(--muted);font-variant-numeric:tabular-nums;margin-top:2px}
+.ucard .line{font-size:13.5px;margin-top:9px}
+.ucard .line .mut{color:var(--muted)}
+.ucard .tags{margin-top:9px}
+.ucard.st-in{border-left-color:var(--ok)}
+.ucard.st-out{border-left-color:var(--warn)}
+.ucard.st-overdue{border-left-color:var(--bad)}
+.ucard.st-longterm{border-left-color:var(--lt)}
+.lite-recent{margin-top:22px}
+.lite-recent h2{font-size:14px;margin:0 0 10px;padding-bottom:6px;border-bottom:1px solid var(--line);letter-spacing:-.2px}
 </style>
 </head>
 <body>
@@ -181,6 +211,7 @@ footer{text-align:center;color:var(--muted);font-size:12px;padding:18px 0 8px}
   <header>
     <h1>📦 Loaner Unit Tracker</h1>
     <span class="livepill" id="syncPill"><span class="dot"></span><span id="syncTxt">Connecting…</span></span>
+    <button class="btn sm" id="installBtn" title="Install this as an app on your phone">⬇ Install app</button>
     <button class="icon-btn" id="dataBtn" title="Backup &amp; data file">📂</button>
     <button class="icon-btn" id="themeBtn" title="Toggle theme">☾</button>
   </header>
@@ -197,6 +228,25 @@ footer{text-align:center;color:var(--muted);font-size:12px;padding:18px 0 8px}
     <button data-tab="tracker">📝 Tracker</button>
     <button data-tab="help">❓ Help</button>
   </nav>
+
+  <!-- VIEW-ONLY LITE (phone app, ?view) -->
+  <section id="tab-lite" class="panel">
+    <div class="litebar">
+      <input class="grow" id="liteSearch" placeholder="Search model, serial, customer, location…">
+    </div>
+    <div class="chiprow" id="liteChips">
+      <button class="fchip on" data-f="all">All</button>
+      <button class="fchip" data-f="in">In-house</button>
+      <button class="fchip" data-f="out">Out</button>
+      <button class="fchip" data-f="overdue">Overdue</button>
+      <button class="fchip" data-f="longterm">Long-term</button>
+    </div>
+    <div class="cards" id="liteBody"></div>
+    <div class="lite-recent">
+      <h2>Recent changes</h2>
+      <div id="liteRecent"></div>
+    </div>
+  </section>
 
   <!-- ALL UNITS -->
   <section id="tab-all" class="panel">
@@ -340,7 +390,7 @@ footer{text-align:center;color:var(--muted);font-size:12px;padding:18px 0 8px}
   <section id="tab-help" class="panel hide">
     <div class="help">
       <h2>What this is</h2>
-      <p class="lead">A loaner-unit tracker shared live with your team — everyone with the link sees the same board, updating in real time, and it's backed up to the cloud automatically every hour. <span class="tag">Version 3.4</span></p>
+      <p class="lead">A loaner-unit tracker shared live with your team — everyone with the link sees the same board, updating in real time, and it's backed up to the cloud automatically every hour. <span class="tag">Version 3.5</span></p>
 
       <h2>The tabs</h2>
       <div class="grid">
@@ -352,6 +402,9 @@ footer{text-align:center;color:var(--muted);font-size:12px;padding:18px 0 8px}
         <div class="card"><h3>Returned</h3><p class="lead">A history log of completed short-term loans, plus units removed from the master list (with the reason).</p></div>
         <div class="card"><h3>📝 Tracker</h3><p class="lead">A live <b>change log</b> — every add, edit, loan, return, request, deletion and restore, newest first, colour-coded by action, with who did it and when. Search it, filter by action, or export to CSV.</p></div>
       </div>
+
+      <h2>📱 Phone app (view-only)</h2>
+      <p class="lead">There's a read-only version for your phone at <code>unittracker.github.io/?view</code>. Open that link on your phone and use your browser's <b>“Add to Home Screen” / “Install app”</b> — it installs like a real app with its own icon and opens full-screen. It shows the live board as simple cards (search + filter by In-house / Out / Overdue / Long-term) and a “recent changes” list, but <b>can't edit anything</b> — safe to hand to anyone who just needs to look.</p>
 
       <h2>Placement vs. tags</h2>
       <p>Every unit has one <b>placement</b> — where it physically is right now — plus three independent <b>tags</b>:</p>
@@ -447,7 +500,7 @@ footer{text-align:center;color:var(--muted);font-size:12px;padding:18px 0 8px}
     </div>
   </section>
 
-  <footer id="footer">Loaner Unit Tracker · v3.4 · shared live board · auto-synced + hourly cloud backups + change log</footer>
+  <footer id="footer">Loaner Unit Tracker · v3.5 · shared live board · auto-synced + hourly cloud backups + change log + phone viewer</footer>
 </div>
 
 <!-- Add / Edit unit modal -->
@@ -683,6 +736,12 @@ let editingUnitId=null, loanUnitId=null, returnUnitId=null, ltUnitId=null, reser
 let fileHandle=null;       // linked backup file (File System Access API)
 const HAS_FSA = !!(window.showSaveFilePicker && window.showOpenFilePicker);
 
+/* ===== view-only "lite" phone mode =====
+   Opened via ?view — renders a read-only card layout and HARD-BLOCKS every write
+   (persist / cloud push / backups / audit) so a viewer device can never change the board. */
+const VIEW_ONLY = new URLSearchParams(location.search).has('view') || /(?:^|[#&])view\b/.test(location.hash);
+let liteFilter='all';
+
 /* ===== change-log / audit trail =====
    Stored in its OWN append-only Firebase path (unittracker/audit), NOT in the main data blob,
    so two people editing at once can never overwrite each other's log entries. */
@@ -705,6 +764,7 @@ function ensureEditor(){
 function saveAuditLocal(){ try{ localStorage.setItem(AUDIT_KEY, JSON.stringify(AUDIT.slice(0,1000))); }catch(e){} }
 function loadAuditLocal(){ try{ const raw=localStorage.getItem(AUDIT_KEY); if(raw){ const a=JSON.parse(raw); if(Array.isArray(a)) AUDIT=a; } }catch(e){} }
 function logEvent(type, msg, unit, unitId){
+  if(VIEW_ONLY) return;                    // viewers never write to the shared log
   const e={ cid:'a'+Date.now().toString(36)+Math.random().toString(36).slice(2,6), ts:Date.now(),
     who:ensureEditor(), type:type||'edit', msg:msg||'', unit:unit||'', unitId:unitId||'' };
   AUDIT.unshift(e);                       // optimistic — show immediately, before the cloud echo
@@ -782,13 +842,13 @@ async function saveFile(){
   }catch(e){ console.warn('file save failed',e); setFilePill('err'); }
 }
 // call after every data change
-function persist(){ saveLocal(); if(fileHandle) saveFile(); fbPush(); }
+function persist(){ if(VIEW_ONLY) return; saveLocal(); if(fileHandle) saveFile(); fbPush(); }
 
 /* ===== cloud sync (shared board via Firebase Realtime DB) ===== */
 let pendingRemote=null, lastPushCanon='';
 function canonState(o){ try{ return JSON.stringify({u:(o&&o.units)||{},m:(o&&o.managers)||[],l:(o&&o.locations)||[],a:(o&&o.archive)||[],s:(o&&o.mgrSeed)||0}); }catch(e){ return ''; } }
 function anyModalOpen(){ return !!document.querySelector('.overlay.show'); }
-function fbPush(){ if(!window.__fbWrite) return; const obj=dataObject(); lastPushCanon=canonState(obj); try{ window.__fbWrite(obj); }catch(e){ console.warn('fbPush',e); } }
+function fbPush(){ if(VIEW_ONLY||!window.__fbWrite) return; const obj=dataObject(); lastPushCanon=canonState(obj); try{ window.__fbWrite(obj); }catch(e){ console.warn('fbPush',e); } }
 function applyRemoteState(v){
   try{
     UNITS = (v.units && typeof v.units==='object') ? v.units : {};
@@ -805,7 +865,7 @@ function applyRemoteState(v){
 // called by the Firebase module below whenever the shared board changes
 window.__applyRemote=function(v){
   if(v==null){ // shared board is empty — seed it from whatever we have locally (e.g. an imported backup)
-    if(Object.keys(UNITS).length || ARCHIVE.length) fbPush();
+    if(!VIEW_ONLY && (Object.keys(UNITS).length || ARCHIVE.length)) fbPush();  // a viewer must never seed/write
     return;
   }
   if(canonState(v)===lastPushCanon) return;      // ignore the echo of our own write
@@ -826,7 +886,7 @@ setInterval(()=>{ if(pendingRemote!=null && !anyModalOpen()){ const v=pendingRem
 const MAX_BACKUPS=48;   // ~2 days of hourly snapshots
 function backupHourKey(d){ const p=n=>String(n).padStart(2,'0'); return `${d.getFullYear()}-${p(d.getMonth()+1)}-${p(d.getDate())}_${p(d.getHours())}`; }
 function doHourlyBackup(){
-  if(!window.__fbSnapshotWrite) return;
+  if(VIEW_ONLY || !window.__fbSnapshotWrite) return;   // viewers never write backups
   if(!(Object.keys(UNITS).length || ARCHIVE.length)) return;   // never snapshot an empty board
   const d=new Date();
   window.__fbSnapshotWrite(backupHourKey(d), { at:d.toISOString(), count:Object.keys(UNITS).length, data:dataObject() });
@@ -1221,7 +1281,63 @@ function renderTrackerTab(){
   });
   box.innerHTML=html;
 }
-function renderAll(){ renderStats(); renderAllTab(); renderOutTab(); renderRequestsTab(); renderLongTermTab(); renderTFSTab(); renderReturnedTab(); renderTrackerTab(); }
+/* ===== render: VIEW-ONLY LITE (phone cards) ===== */
+function liteDueChip(u){
+  if(u.status==='out'&&u.loan&&u.loan.expiry){
+    const d=daysUntil(u.loan.expiry); const cls=d<0?'r':(d<=3?'a':'g');
+    const txt=d<0?('Overdue '+(-d)+'d'):(d===0?'Due today':(d+'d left'));
+    return ` <span class="days ${cls}">${esc(txt)}</span>`;
+  }
+  return '';
+}
+function renderLite(){
+  const body=$("#liteBody"); if(!body) return;
+  const q=($("#liteSearch")?$("#liteSearch").value:'').trim().toLowerCase();
+  let arr=unitsArr().filter(u=>{
+    if(liteFilter==='in') return u.status==='in';
+    if(liteFilter==='out') return u.status==='out';
+    if(liteFilter==='longterm') return u.status==='longterm';
+    if(liteFilter==='overdue') return u.status==='out'&&u.loan&&u.loan.expiry&&daysUntil(u.loan.expiry)<0;
+    return true;
+  });
+  if(q) arr=arr.filter(u=>[u.model,u.serial,u.loan&&u.loan.customer,u.longterm&&u.longterm.holder,unitManager(u),u.location].some(v=>String(v||'').toLowerCase().includes(q)));
+  arr.sort((a,b)=>(a.model||'').localeCompare(b.model||'')||(a.serial||'').localeCompare(b.serial||''));
+  if(!arr.length){ body.innerHTML=`<div class="empty">No units match.</div>`; }
+  else body.innerHTML=arr.map(u=>{
+    let stcls='st-in', badge='<span class="badge in">IN-HOUSE</span>', line='';
+    if(u.status==='out'){
+      const overdue=u.loan&&u.loan.expiry&&daysUntil(u.loan.expiry)<0;
+      stcls=overdue?'st-overdue':'st-out'; badge='<span class="badge out">OUT</span>';
+      line=`<span class="mut">To</span> <b>${esc((u.loan&&u.loan.customer)||'—')}</b>${liteDueChip(u)}`;
+    } else if(u.status==='longterm'){
+      stcls='st-longterm'; const lt=u.longterm||{}; badge='<span class="badge lt">LONG-TERM</span>';
+      line=`<span class="mut">With</span> <b>${esc(lt.holder||lt.type||'—')}</b>${lt.type?` · ${esc(lt.type)}`:''}`;
+    } else {
+      line=`<span class="mut">📍</span> ${esc(u.location||'In-house')}`;
+    }
+    const tg=[];
+    if(u.onAccount) tg.push('<span class="badge acct">On account</span>');
+    if(u.tfs) tg.push('<span class="badge tfs">TFS</span>');
+    if(u.fromUS) tg.push('<span class="badge us">US→CA</span>');
+    return `<div class="ucard ${stcls}">
+      <div class="top"><div><div class="mdl">${esc(u.model||'—')}</div><div class="ser">${esc(u.serial||'—')}</div></div>${badge}</div>
+      <div class="line">${line}</div>
+      ${tg.length?`<div class="tags">${tg.join('')}</div>`:''}
+    </div>`;
+  }).join('');
+  const rc=$("#liteRecent");
+  if(rc){
+    const recent=AUDIT.slice().sort((a,b)=>(b.ts||0)-(a.ts||0)).slice(0,8);
+    if(!recent.length){ rc.innerHTML='<div class="hint">No changes recorded yet.</div>'; }
+    else rc.innerHTML=recent.map(e=>{
+      const t=TRK_TYPES[e.type]||{label:e.type||'',cls:'trk-edit'}; const d=new Date(e.ts||0);
+      const when=d.toLocaleDateString(undefined,{month:'short',day:'numeric'})+' '+d.toLocaleTimeString(undefined,{hour:'numeric',minute:'2-digit'});
+      return `<div class="trkrow ${t.cls}"><div class="tt">${esc(when)}</div><div style="flex:1"><span class="trkchip ${t.cls}">${esc(t.label)}</span> ${esc(e.msg||'')}${e.unit?` — <b>${esc(e.unit)}</b>`:''}</div></div>`;
+    }).join('');
+  }
+}
+
+function renderAll(){ renderStats(); renderAllTab(); renderOutTab(); renderRequestsTab(); renderLongTermTab(); renderTFSTab(); renderReturnedTab(); renderTrackerTab(); if(VIEW_ONLY) renderLite(); }
 
 /* ===== modals ===== */
 function openOverlay(id){ $(id).classList.add('show'); }
@@ -1662,15 +1778,54 @@ function applyTheme(t){ document.documentElement.setAttribute('data-theme',t); t
 themeBtn.addEventListener('click',()=>{ const cur=document.documentElement.getAttribute('data-theme')==='dark'?'dark':'light'; applyTheme(cur==='dark'?'light':'dark'); });
 (function(){ let t='light'; try{t=localStorage.getItem('unittracker_theme')||'light';}catch(e){} applyTheme(t); })();
 
+/* ===== view-only lite phone mode: layout, filters, and installable-app (PWA) wiring ===== */
+function setupViewMode(){
+  document.body.classList.add('viewonly');
+  activeTab='lite';
+  const h1=document.querySelector('header h1'); if(h1) h1.textContent='📦 Unit Tracker';
+  const pill=$("#syncPill"); if(pill) pill.insertAdjacentHTML('beforebegin','<span class="viewbadge">View only</span>');
+  const ls=$("#liteSearch"); if(ls) ls.addEventListener('input', renderLite);
+  $$('#liteChips .fchip').forEach(c=>c.addEventListener('click',()=>{
+    liteFilter=c.dataset.f;
+    $$('#liteChips .fchip').forEach(x=>x.classList.toggle('on',x===c));
+    renderLite();
+  }));
+  setupPWA();
+}
+function setupPWA(){
+  const ICON192="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAMAAAADACAYAAABS3GwHAAACOklEQVR42u3bwQkAIRRDwTRjZZZvEVqFIGYCr4CVP8fNmGtLrcUjCAAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAKkawAv74TsAcPTVAH7GEMcPQDOCOHwAmiEAAAAAjh+AVgRx/AA0IwAAAAAAAAAAxw9AIQIAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAMkfYeaPMAAMAAAMAAAMAAAMAAAMAAAMAAAMAAAMAAAMAAAMAAAMAAAMAAAMAAAMAAAMAAAMAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAIHD8AAAAAAAAAAAABI4fAAgcPwAAAAAACA4fAAgcPwAwOHoAJAAkACQAJAAkACQAJAAkACQAJAAkACQAJAAEgIcQABIAEgASABIAEgASABIAEgASABIAEgASABIAEgASABIAEgASABIAEgASABIAEgASABIAEgASABIAEgASANLdDugNE8BfFhnWAAAAAElFTkSuQmCC";
+  const ICON512="data:image/png;base64,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ZgIAAYAAMDMBgABAAJiZAEAAIADMTAAgABAAZiYAEAAIADMTAAgABICZCQAEAALAzAQAAgABYGYCAAGAADAzAYAAQACYmQBAACAAzEwAIAAQAGYmABAACAAzEwAIAAFgZiYABICPIADMzASAAEAAmJkAQAAgAMxMACAAEABmJgAQAAgAMxMACAAEgJkJAAQAAsDMBAACAAFgZgIAAYAAMDMBgABAAJiZAEAAIADMTAAgABAAZiYAEAAIADMTAAgABICZCQAEAALAzAQAAgABYGYCAAEgAMzMBAACQACYmQkAAYAAMDMBgABAAJiZAEAAIADMTAAgABAAZiYAEAAIADMTAAgABICZCQAEAALAzAQAAgABYGYCAAGAADAzAYAAQACYmQBAACAAzEwAIAAQAGYmABAACAAzEwAIAASAmQkABAACwMwEAAJAAJiZCQAEgAAwMxMAAgABYGYCAAGAADAzAYAAQACYmQBAACAAzEwAIAAQAGYmABAACAAzEwAIAASAmQkABAACwMwEAAIAAWBmAgABgAAwMwGAAEAAmJkAQAAgAMxMACAAEABmJgAQAAgAMxMACAAEgJkJAASAADAzEwAIABFgZubnLwAQAGYmABAACAAzEwAIAESAmfn5IwAQAGYmABAACAAzEwAIAESAmfn5IwAQAGYmABAAiAAz8/NHACAAzEwAIAAQAWbm548AQASYmZ8/AgARYGZ+/ggABICZCQAEACLAzPz8EQCIADPz80cAIALM/PxBACAEzPz4EQAgAsz8/BEAIALM/PwRACAEzPz4EQAIATPz40cAIAbMzE8fAYAYMDM/fQQAACAAAAABAAAIAABAAAAAAgAAEAAAgAAAAAQAACAAAAABAAACwEcAAAEAAAgAAEAAAAACAAAQAACAAAAABAAAIAAAAAEAAAgAAEAAAAACAAAQAACAAAAABAAAIAAAAAEAAAIAABAAAIAAAAAEAAAgAAAAAQAACAAAQAAAAAIAABAAAIAAAAAEAAAgAAAAAQAACAAAQAAAAAIAAAQAACAAAAABAAAIAABAAAAAAgAAEAAAgAAAAAQAACAAAAABAAAIAABAAAAAAgAAEAAAgAAAAAQAAAgAAEAAAAACAAAQAACAAAAABAAAIAAAAAEAAAgAAEAAAAACAAAQAACAAAAABAAAIAAAAAEAAAgAABAAAIAAAAAEAAAgAAAAAQAACAAAQAAAAAIAABAAAIAAAAAEAAAgAAAAAQAACAAAQAAAAAIAABAAACAAfAQAEAAAgAAAAAQAACAAAAABAAAIAABAAAAAAgAAEAAAgAAAAAQAACAAAAABAAAIAABAAAAAAgAAEAAAIAAAAAEAAAgAAEAAAAACAAAQAACAAAAABAAAcNEEQFsknsCGUyUAAAAASUVORK5CYII=";
+  try{
+    const manifest={ name:"Unit Tracker (Viewer)", short_name:"Units", start_url:"./?view", scope:"./",
+      display:"standalone", orientation:"portrait-primary", background_color:"#f4f6f9", theme_color:"#2563eb",
+      description:"Read-only view of the shared loaner unit board.",
+      icons:[ {src:ICON192,sizes:"192x192",type:"image/png",purpose:"any maskable"},
+              {src:ICON512,sizes:"512x512",type:"image/png",purpose:"any maskable"} ] };
+    const href='data:application/manifest+json,'+encodeURIComponent(JSON.stringify(manifest));
+    const l=document.createElement('link'); l.rel='manifest'; l.setAttribute('href',href); document.head.appendChild(l);
+    const meta=document.createElement('meta'); meta.name='theme-color'; meta.content='#2563eb'; document.head.appendChild(meta);
+    const al=document.createElement('link'); al.rel='apple-touch-icon'; al.setAttribute('href',ICON192); document.head.appendChild(al);
+  }catch(e){ console.warn('manifest setup',e); }
+  if('serviceWorker' in navigator){ navigator.serviceWorker.register('sw.js').catch(e=>console.warn('sw register',e)); }
+  // "Install app" button (Android Chrome fires beforeinstallprompt when installable)
+  let deferred=null; const btn=$("#installBtn");
+  window.addEventListener('beforeinstallprompt', ev=>{ ev.preventDefault(); deferred=ev; if(btn) btn.style.display='inline-flex'; });
+  if(btn) btn.addEventListener('click', async()=>{ if(!deferred) return; deferred.prompt(); try{ await deferred.userChoice; }catch(e){} deferred=null; btn.style.display='none'; });
+  window.addEventListener('appinstalled', ()=>{ if(btn) btn.style.display='none'; });
+}
+
 /* boot */
 loadLocal();
 loadAuditLocal();   // show the cached change-log instantly (cloud watch refreshes it)
-saveLocal();   // persist any one-time manager merge / migration
+if(!VIEW_ONLY) saveLocal();   // persist any one-time manager merge / migration (never write from a viewer)
+if(VIEW_ONLY) setupViewMode();
 renderAll();
 setFilePill('local');
-// keep the shared change-log trimmed to the newest ~1,000 entries
-setTimeout(()=>{ if(window.__fbAuditPrune) window.__fbAuditPrune(1000); }, 30000);
-setInterval(()=>{ if(window.__fbAuditPrune) window.__fbAuditPrune(1000); }, 60*60*1000);
+// keep the shared change-log trimmed to the newest ~1,000 entries (editors only)
+if(!VIEW_ONLY){
+  setTimeout(()=>{ if(window.__fbAuditPrune) window.__fbAuditPrune(1000); }, 30000);
+  setInterval(()=>{ if(window.__fbAuditPrune) window.__fbAuditPrune(1000); }, 60*60*1000);
+}
 // keep "Days Left" and stats current if the app is left open across midnight
 setInterval(()=>{ renderStats(); renderOutTab(); }, 60*60*1000);
 </script>
