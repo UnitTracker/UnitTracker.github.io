@@ -155,6 +155,21 @@ footer{text-align:center;color:var(--muted);font-size:12px;padding:18px 0 8px}
 .dayrow .rowacts{flex:0 0 auto}
 @media(max-width:560px){ .calcell{min-height:62px;padding:3px 4px} .calev{font-size:9.5px;padding:1px 4px} .caldow{font-size:10px} }
 
+/* change-log / tracker */
+.trkday{font-weight:800;font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:.4px;margin:16px 0 7px}
+.trkrow{display:flex;gap:10px;align-items:flex-start;padding:8px 11px;border:1px solid var(--line);border-left-width:4px;border-radius:9px;margin-bottom:6px;background:var(--panel)}
+.trkrow .tt{font-size:11px;color:var(--muted);min-width:62px;white-space:nowrap;padding-top:2px}
+.trkchip{font-size:10.5px;font-weight:800;padding:2px 8px;border-radius:999px;white-space:nowrap;flex:0 0 auto}
+.trkrow .who{font-size:11.5px}
+.trk-add{border-left-color:var(--ok)} .trkchip.trk-add{background:var(--okbg);color:var(--ok)}
+.trk-edit{border-left-color:var(--muted)} .trkchip.trk-edit{background:var(--panel2);color:var(--muted)}
+.trk-loan{border-left-color:var(--warn)} .trkchip.trk-loan{background:var(--warnbg);color:var(--warn)}
+.trk-return{border-left-color:var(--info)} .trkchip.trk-return{background:var(--infobg);color:var(--info)}
+.trk-reserve{border-left-color:var(--lt)} .trkchip.trk-reserve{background:var(--ltbg);color:var(--lt)}
+.trk-delete{border-left-color:var(--bad)} .trkchip.trk-delete{background:var(--badbg);color:var(--bad)}
+.trk-settings{border-left-color:var(--muted)} .trkchip.trk-settings{background:var(--panel2);color:var(--muted)}
+.trk-restore{border-left-color:var(--lt)} .trkchip.trk-restore{background:var(--ltbg);color:var(--lt)}
+
 @media(max-width:720px){
   .grid2{grid-template-columns:1fr}
   header h1{font-size:17px}
@@ -179,6 +194,7 @@ footer{text-align:center;color:var(--muted);font-size:12px;padding:18px 0 8px}
     <button data-tab="longterm">Long-Term</button>
     <button data-tab="tfs">TFS Support</button>
     <button data-tab="returned">Returned</button>
+    <button data-tab="tracker">📝 Tracker</button>
     <button data-tab="help">❓ Help</button>
   </nav>
 
@@ -298,11 +314,33 @@ footer{text-align:center;color:var(--muted);font-size:12px;padding:18px 0 8px}
     </div>
   </section>
 
+  <!-- TRACKER / CHANGE LOG -->
+  <section id="tab-tracker" class="panel hide">
+    <div class="toolbar">
+      <input class="grow" id="trkSearch" placeholder="Search log — unit, person, action…">
+      <select id="trkType" style="width:auto">
+        <option value="">All actions</option>
+        <option value="add">Added</option>
+        <option value="edit">Edited</option>
+        <option value="loan">Loaned out</option>
+        <option value="return">Returned</option>
+        <option value="reserve">Requests</option>
+        <option value="delete">Deleted</option>
+        <option value="settings">Settings</option>
+        <option value="restore">Restore / import</option>
+      </select>
+      <button class="btn ghost sm" id="trkWhoBtn" title="Set the name shown on your changes">You: anonymous ✎</button>
+      <button class="btn ghost sm" id="exportTrk">⬇ CSV</button>
+    </div>
+    <div class="hint" id="trkNote" style="margin:-2px 0 12px">Every change to the board is recorded here (newest first) — who did it, what changed, and when. It’s a visibility log, not a lock: since anyone with the link can edit, treat it as a helpful record rather than tamper-proof security.</div>
+    <div id="trkBody"></div>
+  </section>
+
   <!-- HELP -->
   <section id="tab-help" class="panel hide">
     <div class="help">
       <h2>What this is</h2>
-      <p class="lead">A loaner-unit tracker shared live with your team — everyone with the link sees the same board, updating in real time, and it's backed up to the cloud automatically every hour. <span class="tag">Version 3.3</span></p>
+      <p class="lead">A loaner-unit tracker shared live with your team — everyone with the link sees the same board, updating in real time, and it's backed up to the cloud automatically every hour. <span class="tag">Version 3.4</span></p>
 
       <h2>The tabs</h2>
       <div class="grid">
@@ -312,6 +350,7 @@ footer{text-align:center;color:var(--muted);font-size:12px;padding:18px 0 8px}
         <div class="card"><h3>Long-Term</h3><p class="lead">Permanent / long-term loans, with the holder, the responsible account manager, and a since-date.</p></div>
         <div class="card"><h3>TFS Support</h3><p class="lead">A <b>tag</b>, like “On account.” Any unit can be marked TFS and still be in-house, out, or long-term.</p></div>
         <div class="card"><h3>Returned</h3><p class="lead">A history log of completed short-term loans, plus units removed from the master list (with the reason).</p></div>
+        <div class="card"><h3>📝 Tracker</h3><p class="lead">A live <b>change log</b> — every add, edit, loan, return, request, deletion and restore, newest first, colour-coded by action, with who did it and when. Search it, filter by action, or export to CSV.</p></div>
       </div>
 
       <h2>Placement vs. tags</h2>
@@ -355,6 +394,11 @@ footer{text-align:center;color:var(--muted);font-size:12px;padding:18px 0 8px}
       </div>
       <div class="callout">
         <b>Days Left colours:</b> <span style="color:var(--ok);font-weight:700">green</span> = plenty of time · <span style="color:var(--warn);font-weight:700">amber</span> = due within 3 days · <span style="color:var(--bad);font-weight:700">red</span> = overdue. Most overdue at the top. All dates read like <b>Aug 18, 2026</b>.
+      </div>
+      <div class="card">
+        <h3>📝 Track changes (audit log)</h3>
+        <p>The <b>Tracker</b> tab records every change made to the board — newest first — so you can see what happened and when. The first time you make a change on a device, it asks for your <b>name or initials</b> (optional) so your edits are labelled; change it anytime with the <kbd>You: …</kbd> button on the Tracker tab. Filter by action type, search, or export the whole log to CSV.</p>
+        <p class="hint">Heads-up: this is a <b>visibility</b> tool, not a lock. Anyone with the link can still edit the board, so treat the log as a helpful record. Proper per-person accounts (a login) are a planned future step.</p>
       </div>
 
       <h2>👤 Account Managers</h2>
@@ -403,7 +447,7 @@ footer{text-align:center;color:var(--muted);font-size:12px;padding:18px 0 8px}
     </div>
   </section>
 
-  <footer id="footer">Loaner Unit Tracker · v3.3 · shared live board · auto-synced + hourly cloud backups</footer>
+  <footer id="footer">Loaner Unit Tracker · v3.4 · shared live board · auto-synced + hourly cloud backups + change log</footer>
 </div>
 
 <!-- Add / Edit unit modal -->
@@ -639,6 +683,46 @@ let editingUnitId=null, loanUnitId=null, returnUnitId=null, ltUnitId=null, reser
 let fileHandle=null;       // linked backup file (File System Access API)
 const HAS_FSA = !!(window.showSaveFilePicker && window.showOpenFilePicker);
 
+/* ===== change-log / audit trail =====
+   Stored in its OWN append-only Firebase path (unittracker/audit), NOT in the main data blob,
+   so two people editing at once can never overwrite each other's log entries. */
+const AUDIT_KEY="unittracker_audit", EDITOR_KEY="unittracker_editor";
+let AUDIT=[];              // {cid,ts,who,type,unit,unitId} newest-first
+let editorName=null;       // null = never asked on this device; '' = asked, stays anonymous
+try{ editorName=localStorage.getItem(EDITOR_KEY); }catch(e){}
+const TRK_TYPES={ add:{label:'Added',cls:'trk-add'}, edit:{label:'Edited',cls:'trk-edit'},
+  loan:{label:'Loaned out',cls:'trk-loan'}, return:{label:'Returned',cls:'trk-return'},
+  reserve:{label:'Request',cls:'trk-reserve'}, delete:{label:'Deleted',cls:'trk-delete'},
+  settings:{label:'Settings',cls:'trk-settings'}, restore:{label:'Restore',cls:'trk-restore'} };
+function unitLabel(u){ return u?((u.model||'(no model)')+(u.serial?(' · '+u.serial):'')):''; }
+function ensureEditor(){
+  if(editorName===null){   // first change on this device — ask once (optional)
+    let n=''; try{ n=window.prompt('Optional: enter your name or initials so your changes are labelled in the 📝 Tracker log.\n\nLeave blank to stay anonymous — you can set it later from the Tracker tab.','')||''; }catch(e){}
+    editorName=n.trim(); try{ localStorage.setItem(EDITOR_KEY, editorName); }catch(e){}
+  }
+  return editorName||'';
+}
+function saveAuditLocal(){ try{ localStorage.setItem(AUDIT_KEY, JSON.stringify(AUDIT.slice(0,1000))); }catch(e){} }
+function loadAuditLocal(){ try{ const raw=localStorage.getItem(AUDIT_KEY); if(raw){ const a=JSON.parse(raw); if(Array.isArray(a)) AUDIT=a; } }catch(e){} }
+function logEvent(type, msg, unit, unitId){
+  const e={ cid:'a'+Date.now().toString(36)+Math.random().toString(36).slice(2,6), ts:Date.now(),
+    who:ensureEditor(), type:type||'edit', msg:msg||'', unit:unit||'', unitId:unitId||'' };
+  AUDIT.unshift(e);                       // optimistic — show immediately, before the cloud echo
+  if(AUDIT.length>1200) AUDIT.length=1200;
+  saveAuditLocal();
+  if(window.__fbAuditPush) window.__fbAuditPush(e);
+  if(activeTab==='tracker') renderTrackerTab();
+}
+// merge the newest entries from the shared append-only log (called by the Firebase module)
+window.__applyAudit=function(map){
+  const arr=Object.keys(map||{}).map(k=>Object.assign({key:k}, map[k]));
+  const seen=new Set(arr.map(e=>e.cid));
+  const pending=AUDIT.filter(e=>e.cid && !e.key && !seen.has(e.cid));  // our own not-yet-echoed writes
+  AUDIT=arr.concat(pending).sort((a,b)=>(b.ts||0)-(a.ts||0)).slice(0,1200);
+  saveAuditLocal();
+  if(activeTab==='tracker') renderTrackerTab();
+};
+
 /* unit shape:
  { id, model, serial, onAccount:bool, tfs:bool, fromUS:bool, location:string, status:'in'|'out'|'longterm',
    loan:{customer,manager,left,courier,waybill,start,expiry,comments}|null,
@@ -780,6 +864,7 @@ function restoreBackup(key){
     applyRemoteState(s.data);  // load into memory + render + cache
     fbPush();                  // publish the restored state to the shared board
     closeOverlay('#backupsOverlay'); closeOverlay('#dataOverlay');
+    logEvent('restore','Rolled the whole board back to the backup from '+when,'');
     toast('Restored backup from '+when);
   });
 }
@@ -1111,7 +1196,32 @@ function renderReqList(){
 }
 function renderRequestsTab(){ fillReqUnitPick(); renderCalendar(); renderReqList(); }
 
-function renderAll(){ renderStats(); renderAllTab(); renderOutTab(); renderRequestsTab(); renderLongTermTab(); renderTFSTab(); renderReturnedTab(); }
+function renderTrackerTab(){
+  const whoBtn=$("#trkWhoBtn"); if(whoBtn) whoBtn.textContent='You: '+((editorName&&editorName.trim())?editorName.trim():'anonymous')+' ✎';
+  const box=$("#trkBody"); if(!box) return;
+  const q=($("#trkSearch")?$("#trkSearch").value:'').trim().toLowerCase();
+  const ft=$("#trkType")?$("#trkType").value:'';
+  let rows=AUDIT.slice().sort((a,b)=>(b.ts||0)-(a.ts||0));
+  if(ft) rows=rows.filter(e=>e.type===ft);
+  if(q) rows=rows.filter(e=>((e.msg||'')+' '+(e.unit||'')+' '+(e.who||'')+' '+((TRK_TYPES[e.type]||{}).label||'')).toLowerCase().includes(q));
+  if(!rows.length){ box.innerHTML='<div class="hint">'+(AUDIT.length?'No entries match your search.':'No changes logged yet — every edit from now on will appear here.')+'</div>'; return; }
+  let html='', curDay='';
+  rows.forEach(e=>{
+    const d=new Date(e.ts||0), dayKey=d.toDateString();
+    if(dayKey!==curDay){ curDay=dayKey; html+=`<div class="trkday">${esc(d.toLocaleDateString(undefined,{weekday:'long',month:'short',day:'numeric',year:'numeric'}))}</div>`; }
+    const meta=TRK_TYPES[e.type]||{label:(e.type||'Change'),cls:'trk-edit'};
+    const time=d.toLocaleTimeString(undefined,{hour:'numeric',minute:'2-digit'});
+    html+=`<div class="trkrow ${meta.cls}">
+      <span class="tt">${esc(time)}</span>
+      <span class="trkchip ${meta.cls}">${esc(meta.label)}</span>
+      <div style="flex:1;min-width:0">
+        <div>${esc(e.msg||'')}${e.unit?(' — <b>'+esc(e.unit)+'</b>'):''}</div>
+        <div class="hint who">${e.who?('by '+esc(e.who)):'anonymous'}</div>
+      </div></div>`;
+  });
+  box.innerHTML=html;
+}
+function renderAll(){ renderStats(); renderAllTab(); renderOutTab(); renderRequestsTab(); renderLongTermTab(); renderTFSTab(); renderReturnedTab(); renderTrackerTab(); }
 
 /* ===== modals ===== */
 function openOverlay(id){ $(id).classList.add('show'); }
@@ -1143,10 +1253,10 @@ $("#u_save").addEventListener('click',()=>{
   if(dup){ if(!confirm(`⚠ A unit with this Model and Serial already exists:\n\n${dup.model||'(no model)'} · ${dup.serial||'(no serial)'}\n\nSave this one anyway?`)) return; }
   if(editingUnitId){
     const u=UNITS[editingUnitId]; u.model=model; u.serial=serial; u.location=$("#u_location").value; u.onAccount=$("#u_account").checked; u.tfs=$("#u_tfs").checked; u.fromUS=$("#u_us").checked;
-    persist(); toast('Unit updated');
+    persist(); logEvent('edit','Edited unit details',unitLabel(u),u.id); toast('Unit updated');
   }else{
     const u={id:uid(),model,serial,location:$("#u_location").value,onAccount:$("#u_account").checked,tfs:$("#u_tfs").checked,fromUS:$("#u_us").checked,status:'in',loan:null,longterm:null,reservations:[],history:[]};
-    UNITS[u.id]=u; persist(); toast('Unit added');
+    UNITS[u.id]=u; persist(); logEvent('add','Added a new unit',unitLabel(u),u.id); toast('Unit added');
   }
   closeOverlay('#unitOverlay'); renderAll();
 });
@@ -1169,12 +1279,15 @@ function openLoanModal(id){
 }
 $("#l_save").addEventListener('click',()=>{
   const u=UNITS[loanUnitId]; if(!u) return;
+  const wasOut=u.status==='out'&&u.loan;
   const prevEntered=(u.loan&&u.loan.entered)||null;   // keep original position when editing an existing loan
   u.loan={ customer:$("#l_customer").value.trim(), manager:$("#l_manager").value, left:$("#l_left").value, courier:$("#l_courier").value.trim(),
     waybill:$("#l_waybill").value.trim(), start:$("#l_start").value, expiry:$("#l_expiry").value, comments:$("#l_comments").value.trim(),
     entered: prevEntered || Date.now() };
   u.status='out'; u.longterm=null;
-  persist(); closeOverlay('#loanOverlay'); renderAll(); toast('Loaned out');
+  persist(); closeOverlay('#loanOverlay'); renderAll();
+  logEvent('loan', wasOut?'Updated loan details':('Loaned out to '+(u.loan.customer||'a customer')+(u.loan.expiry?(' · due '+fmtDate(u.loan.expiry)):'')), unitLabel(u), u.id);
+  toast('Loaned out');
 });
 
 /* long-term loan */
@@ -1191,9 +1304,12 @@ function openLongTermModal(id){
 }
 $("#lt_save").addEventListener('click',()=>{
   const u=UNITS[ltUnitId]; if(!u) return;
+  const wasLt=u.status==='longterm'&&u.longterm;
   u.longterm={ holder:$("#lt_holder").value.trim(), type:$("#lt_type").value, manager:$("#lt_manager").value, since:$("#lt_since").value, notes:$("#lt_notes").value.trim() };
   u.status='longterm'; u.loan=null;
-  persist(); closeOverlay('#longtermOverlay'); renderAll(); toast('Set to long-term');
+  persist(); closeOverlay('#longtermOverlay'); renderAll();
+  logEvent('loan', wasLt?'Updated long-term loan':((u.longterm.type||'Long-term')+' to '+(u.longterm.holder||'a holder')), unitLabel(u), u.id);
+  toast('Set to long-term');
 });
 
 /* return */
@@ -1211,8 +1327,11 @@ $("#r_save").addEventListener('click',()=>{
     start:L.start, expiry:L.expiry, comments:L.comments,
     inWaybill:$("#r_waybill").value.trim(), returned:$("#r_date").value||todayISO(), service:$("#r_service").value.trim() };
   u.history=u.history||[]; u.history.push(rec);
+  const fromCust=L.customer||'';
   u.loan=null; u.status='in'; u.location=$("#r_location").value;
-  persist(); closeOverlay('#returnOverlay'); renderAll(); toast('Marked returned');
+  persist(); closeOverlay('#returnOverlay'); renderAll();
+  logEvent('return', 'Returned in-house'+(fromCust?(' from '+fromCust):'')+(u.location?(' → '+u.location):''), unitLabel(u), u.id);
+  toast('Marked returned');
 });
 
 /* reserve / request a loan */
@@ -1257,8 +1376,10 @@ $("#res_add").addEventListener('click',()=>{
     if(!confirm('⚠ Possible overlap\n\nThis request ('+fmtDate(start)+' → '+fmtDate(addDaysISO(start,days))+') overlaps:\n\n• '+conflicts.join('\n• ')+'\n\nAdd the request anyway?')) return;
   }
   u.reservations=u.reservations||[];
-  u.reservations.push({id:uid(),start,days,customer:$("#res_customer").value.trim(),manager:$("#res_manager").value,notes:$("#res_notes").value.trim()});
+  const rc=$("#res_customer").value.trim();
+  u.reservations.push({id:uid(),start,days,customer:rc,manager:$("#res_manager").value,notes:$("#res_notes").value.trim()});
   persist(); renderReserveList(); renderAll();
+  logEvent('reserve', 'Reserved '+fmtDate(start)+' → '+fmtDate(addDaysISO(start,days))+(rc?(' for '+rc):''), unitLabel(u), u.id);
   $("#res_customer").value=''; $("#res_notes").value='';
   toast('Request added');
 });
@@ -1279,6 +1400,7 @@ $$('input[name=delmode]').forEach(r=>r.addEventListener('change',()=>{
 }));
 function performDelete(id, mode, reason){
   const u=UNITS[id]; if(!u) return;
+  const label=unitLabel(u);
   if(mode==='keep'){
     const at=todayISO(); let pushed=0;
     (u.history||[]).forEach(h=>{ ARCHIVE.push(Object.assign({},h,{model:u.model,serial:u.serial,reason:reason,archivedAt:at})); pushed++; });
@@ -1291,6 +1413,7 @@ function performDelete(id, mode, reason){
   }
   delete UNITS[id];
   persist();
+  logEvent('delete', mode==='keep'?('Removed from master list — history kept'+(reason?(' ('+reason+')'):'')):'Deleted unit and all its history', label, id);
 }
 $("#del_confirm").addEventListener('click',()=>{
   const mode=document.querySelector('input[name=delmode]:checked').value;
@@ -1313,7 +1436,7 @@ $("#mgrAdd").addEventListener('click',()=>{ renderManagerRows(mgrInputVals().con
 $("#mgr_save").addEventListener('click',()=>{
   const seen=new Set(); const list=[];
   mgrInputVals().forEach(v=>{ const t=v.trim(); if(t&&!seen.has(t.toLowerCase())){ seen.add(t.toLowerCase()); list.push(t); } });
-  MANAGERS=list; persist(); closeOverlay('#manageMgrOverlay'); renderAll(); toast('Account managers saved');
+  MANAGERS=list; persist(); closeOverlay('#manageMgrOverlay'); renderAll(); logEvent('settings','Updated the account-manager list',''); toast('Account managers saved');
 });
 
 /* manage in-house locations */
@@ -1329,7 +1452,7 @@ $("#locAdd").addEventListener('click',()=>{ renderLocationRows(locInputVals().co
 $("#loc_save").addEventListener('click',()=>{
   const seen=new Set(); const list=[];
   locInputVals().forEach(v=>{ const t=v.trim(); if(t&&!seen.has(t.toLowerCase())){ seen.add(t.toLowerCase()); list.push(t); } });
-  LOCATIONS=list; persist(); closeOverlay('#manageLocOverlay'); renderAll(); toast('Locations saved');
+  LOCATIONS=list; persist(); closeOverlay('#manageLocOverlay'); renderAll(); logEvent('settings','Updated the in-house locations list',''); toast('Locations saved');
 });
 
 /* data / backup modal */
@@ -1378,7 +1501,9 @@ function loadImported(text){
   if(!LOCATIONS.length) LOCATIONS=DEFAULT_LOCATIONS.slice();
   ARCHIVE = (o && Array.isArray(o.archive)) ? o.archive.slice() : [];
   normalizeUnits();
-  persist(); renderAll(); closeOverlay('#dataOverlay'); toast('Backup restored');
+  persist(); renderAll(); closeOverlay('#dataOverlay');
+  logEvent('restore','Imported a backup file — replaced the whole board ('+Object.keys(UNITS).length+' units)','');
+  toast('Backup restored');
 }
 $("#importBtn").addEventListener('click',async()=>{
   if(HAS_FSA){
@@ -1409,18 +1534,18 @@ document.addEventListener('click',e=>{
   if(b.dataset.resdel){
     const [id,rid]=b.dataset.resdel.split(':'); const u=UNITS[id]; if(!u) return;
     u.reservations=(u.reservations||[]).filter(r=>r.id!==rid);
-    persist(); renderReserveList(); renderAll(); toast('Request removed');
+    persist(); renderReserveList(); renderAll(); logEvent('reserve','Removed a loan request',unitLabel(u),u.id); toast('Request removed');
     return;
   }
   if(b.dataset.tfs){
     const u=UNITS[b.dataset.tfs]; if(!u) return;
-    u.tfs=!u.tfs; persist(); renderAll(); toast(u.tfs?'Tagged TFS Support':'Removed TFS tag');
+    u.tfs=!u.tfs; persist(); renderAll(); logEvent('edit',u.tfs?'Tagged as TFS Support':'Removed TFS Support tag',unitLabel(u),u.id); toast(u.tfs?'Tagged TFS Support':'Removed TFS tag');
     return;
   }
   if(b.dataset.endlt){
     const u=UNITS[b.dataset.endlt]; if(!u) return;
     if(!confirm('End the long-term loan and return this unit to in-house?')) return;
-    u.longterm=null; u.status='in'; persist(); renderAll(); toast('Returned to in-house');
+    u.longterm=null; u.status='in'; persist(); renderAll(); logEvent('return','Ended long-term loan — back in-house',unitLabel(u),u.id); toast('Returned to in-house');
     return;
   }
   if(b.dataset.mgrdel){
@@ -1434,7 +1559,8 @@ document.addEventListener('click',e=>{
   if(b.dataset.dayopen){ closeOverlay('#dayOverlay'); openReserveModal(b.dataset.dayopen); return; }
   if(b.dataset.archdel){
     if(!confirm('Permanently delete this archived record from the Returned tab?')) return;
-    ARCHIVE.splice(+b.dataset.archdel,1); persist(); renderAll(); toast('Record deleted');
+    const rec=ARCHIVE[+b.dataset.archdel]||{};
+    ARCHIVE.splice(+b.dataset.archdel,1); persist(); renderAll(); logEvent('delete','Deleted an archived record',((rec.model||'')+(rec.serial?(' · '+rec.serial):'')).trim()); toast('Record deleted');
     return;
   }
   if(b.dataset.undo){
@@ -1444,7 +1570,7 @@ document.addEventListener('click',e=>{
     const h=(u.history||[])[+idx]; if(!h) return;
     u.history.splice(+idx,1);
     u.loan={customer:h.customer,manager:h.manager,left:h.left,courier:h.courier,waybill:h.waybill,start:h.start,expiry:h.expiry,comments:h.comments,entered:Date.now()};
-    u.status='out'; persist(); renderAll(); toast('Back out on loan');
+    u.status='out'; persist(); renderAll(); logEvent('loan','Sent back out on loan (undo return)'+(h.customer?(' to '+h.customer):''),unitLabel(u),u.id); toast('Back out on loan');
   }
 });
 
@@ -1506,8 +1632,23 @@ $("#calToday").addEventListener('click',()=>{ calInit(); renderCalendar(); });
 $("#calGrid").addEventListener('click',e=>{ const c=e.target.closest('[data-calday]'); if(c) openDayModal(c.getAttribute('data-calday')); });
 $("#reqNewBtn").addEventListener('click',()=>{ const id=$("#reqUnitPick").value; if(!id){ toast('Choose a unit first'); return; } openReserveModal(id); });
 
+/* tracker / change-log */
+['trkSearch','trkType'].forEach(id=>{ const el=$('#'+id); if(el) el.addEventListener('input',renderTrackerTab); });
+$("#trkWhoBtn").addEventListener('click',()=>{
+  const n=window.prompt('Your name or initials — this labels the changes you make in the Tracker log. Leave blank to stay anonymous.', editorName||'');
+  if(n===null) return;                       // cancelled
+  editorName=n.trim(); try{ localStorage.setItem(EDITOR_KEY, editorName); }catch(e){}
+  renderTrackerTab(); toast(editorName?('You are now '+editorName):'Now anonymous');
+});
+$("#exportTrk").addEventListener('click',()=>{
+  const rows=[['Date','Time','Person','Action','Unit','Details']];
+  AUDIT.slice().sort((a,b)=>(b.ts||0)-(a.ts||0)).forEach(e=>{ const d=new Date(e.ts||0);
+    rows.push([d.toLocaleDateString(),d.toLocaleTimeString(),e.who||'',(TRK_TYPES[e.type]||{}).label||e.type||'',e.unit||'',e.msg||'']); });
+  download('change-log.csv',csv(rows)); toast('Exported');
+});
+
 /* tabs */
-const TABS=['all','out','requests','longterm','tfs','returned','help'];
+const TABS=['all','out','requests','longterm','tfs','returned','tracker','help'];
 $$('nav.tabs button').forEach(btn=>btn.addEventListener('click',()=>{
   activeTab=btn.dataset.tab;
   $$('nav.tabs button').forEach(x=>x.classList.toggle('active',x===btn));
@@ -1523,9 +1664,13 @@ themeBtn.addEventListener('click',()=>{ const cur=document.documentElement.getAt
 
 /* boot */
 loadLocal();
+loadAuditLocal();   // show the cached change-log instantly (cloud watch refreshes it)
 saveLocal();   // persist any one-time manager merge / migration
 renderAll();
 setFilePill('local');
+// keep the shared change-log trimmed to the newest ~1,000 entries
+setTimeout(()=>{ if(window.__fbAuditPrune) window.__fbAuditPrune(1000); }, 30000);
+setInterval(()=>{ if(window.__fbAuditPrune) window.__fbAuditPrune(1000); }, 60*60*1000);
 // keep "Days Left" and stats current if the app is left open across midnight
 setInterval(()=>{ renderStats(); renderOutTab(); }, 60*60*1000);
 </script>
@@ -1535,7 +1680,7 @@ setInterval(()=>{ renderStats(); renderOutTab(); }, 60*60*1000);
      (dedicated project + auth) before real customer data is entered. -->
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-app.js";
-import { getDatabase, ref, onValue, set, get } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-database.js";
+import { getDatabase, ref, onValue, set, get, push, query, orderByKey, limitToLast, update } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-database.js";
 const firebaseConfig = {
   apiKey: "AIzaSyD9AJbPC9M4gpTyvfIoRcqILq0ZOom1OBs",
   authDomain: "bon-echo-bd946.firebaseapp.com",
@@ -1555,6 +1700,19 @@ try{
   window.__fbSnapshotWrite = (key, val) => { set(ref(db, `unittracker/backups/${key}`), val).catch(e=>console.warn('snap write',e)); };
   window.__fbSnapshotList  = () => get(ref(db, "unittracker/backups")).then(s=>s.val()||{}).catch(()=>({}));
   window.__fbSnapshotDelete= (key) => { set(ref(db, `unittracker/backups/${key}`), null).catch(()=>{}); };
+  // ---- change-log / audit trail (append-only under unittracker/audit) ----
+  // Each entry is its own push() key, so concurrent edits never overwrite one another's log entries.
+  window.__fbAuditPush = entry => { push(ref(db, "unittracker/audit"), entry).catch(e=>console.warn('audit push',e)); };
+  window.__fbAuditPrune = keepN => {
+    get(query(ref(db, "unittracker/audit"), orderByKey())).then(s=>{
+      const m=s.val()||{}, keys=Object.keys(m); if(keys.length<=keepN) return;
+      const del={}; for(let i=0;i<keys.length-keepN;i++) del[keys[i]]=null;
+      update(ref(db, "unittracker/audit"), del).catch(()=>{});
+    }).catch(()=>{});
+  };
+  onValue(query(ref(db, "unittracker/audit"), orderByKey(), limitToLast(1000)),
+    s => { if(window.__applyAudit) window.__applyAudit(s.val()||{}); },
+    e => console.warn('audit watch', e));
   onValue(node, snap => {
     if(window.__setSync) window.__setSync('on');
     if(window.__applyRemote) window.__applyRemote(snap.val());
