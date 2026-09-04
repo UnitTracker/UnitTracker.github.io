@@ -150,6 +150,8 @@ footer{text-align:center;color:var(--muted);font-size:12px;padding:18px 0 8px}
 .calev.overdue{background:var(--badbg);color:var(--bad)}
 .calev.request{background:var(--infobg);color:var(--info)}
 .calev.longterm{background:var(--ltbg);color:var(--lt)}
+.calev.isend{background:transparent;box-shadow:inset 0 0 0 1.5px currentColor}
+.callegend i.ring{background:transparent;box-shadow:inset 0 0 0 2px currentColor}
 .calmore{font-size:10px;color:var(--muted);font-weight:650}
 .dayrow{display:flex;justify-content:space-between;align-items:flex-start;gap:10px;border:1px solid var(--line);border-radius:9px;padding:8px 10px;margin-bottom:8px}
 .dayrow .rowacts{flex:0 0 auto}
@@ -302,10 +304,10 @@ body.viewonly #dataBtn{display:none}
       <div class="caltitle" id="calTitle"></div>
     </div>
     <div class="callegend">
-      <span><i style="background:var(--warn)"></i>Out on loan</span>
-      <span><i style="background:var(--bad)"></i>Overdue</span>
-      <span><i style="background:var(--info)"></i>Request / reservation</span>
-      <span><i style="background:var(--lt)"></i>Long-term start</span>
+      <span><i style="background:var(--warn)"></i>▸ Loan start</span>
+      <span><i class="ring" style="color:var(--warn)"></i>◂ Loan end (return due)</span>
+      <span><i style="background:var(--bad)"></i>◂ Overdue return</span>
+      <span><i style="background:var(--info)"></i>Loan request</span>
     </div>
     <div class="calgrid" id="calDows"></div>
     <div class="calgrid" id="calGrid" style="margin-top:6px"></div>
@@ -390,7 +392,7 @@ body.viewonly #dataBtn{display:none}
   <section id="tab-help" class="panel hide">
     <div class="help">
       <h2>What this is</h2>
-      <p class="lead">A loaner-unit tracker shared live with your team — everyone with the link sees the same board, updating in real time, and it's backed up to the cloud automatically every hour. <span class="tag">Version 3.5</span></p>
+      <p class="lead">A loaner-unit tracker shared live with your team — everyone with the link sees the same board, updating in real time, and it's backed up to the cloud automatically every hour. <span class="tag">Version 3.6</span></p>
 
       <h2>The tabs</h2>
       <div class="grid">
@@ -500,7 +502,7 @@ body.viewonly #dataBtn{display:none}
     </div>
   </section>
 
-  <footer id="footer">Loaner Unit Tracker · v3.5 · shared live board · auto-synced + hourly cloud backups + change log + phone viewer</footer>
+  <footer id="footer">Loaner Unit Tracker · v3.6 · shared live board · auto-synced + hourly cloud backups + change log + phone viewer</footer>
 </div>
 
 <!-- Add / Edit unit modal -->
@@ -723,7 +725,8 @@ const esc=s=>String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;'
 const LS_KEY="unittracker_data";
 const DEFAULT_MANAGERS=['Rosemary Sonsini','Richard Bourbonniere','Jim Seto','Mo Russell','Errol Bailey','Martin Lindsay','Terry Irvin','Lauren Padua','Simon Wong','Shajal Jamal','Vanessa Wong'];
 const MGR_SEED=1;          // bump when new default managers ship; triggers a one-time merge into existing saved lists
-const DEFAULT_LOCATIONS=['Storage Room','Service Bench','Front Office','Warehouse','Demo Room'];  // editable placeholder list — rename to your real spots
+const DEFAULT_LOCATIONS=['Warehouse','Front Storage','Service Bench'];  // in-house spots offered in the location dropdown
+const LOC_SEED=1;          // bump to force a one-time RESET of every saved location list back to DEFAULT_LOCATIONS
 const COURIERS=['Purolator','FedEx','UPS','LTL','Customer'];
 const MONTHS=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
 let UNITS={};              // id -> unit
@@ -731,6 +734,7 @@ let MANAGERS=[];           // account manager names (editable)
 let LOCATIONS=[];          // in-house location names (editable)
 let ARCHIVE=[];            // history records kept after a unit is removed from the master list
 let mgrSeedApplied=0;      // which MGR_SEED has been merged into the stored manager list
+let locSeedApplied=0;      // which LOC_SEED has been applied to the stored location list
 let activeTab="all";
 let editingUnitId=null, loanUnitId=null, returnUnitId=null, ltUnitId=null, reserveUnitId=null, deleteUnitId=null;
 let fileHandle=null;       // linked backup file (File System Access API)
@@ -814,11 +818,11 @@ function normalizeUnits(){
 }
 
 /* ===== persistence (local + optional backup file) ===== */
-function dataObject(){ return { app:"loaner-unit-tracker", version:3, savedAt:new Date().toISOString(), units:UNITS, managers:MANAGERS, locations:LOCATIONS, archive:ARCHIVE, mgrSeed:mgrSeedApplied }; }
+function dataObject(){ return { app:"loaner-unit-tracker", version:3, savedAt:new Date().toISOString(), units:UNITS, managers:MANAGERS, locations:LOCATIONS, archive:ARCHIVE, mgrSeed:mgrSeedApplied, locSeed:locSeedApplied }; }
 function saveLocal(){ try{ localStorage.setItem(LS_KEY, JSON.stringify(dataObject())); }catch(e){ console.warn('localStorage full/blocked',e); } }
 function loadLocal(){
   let loaded=false;
-  try{ const raw=localStorage.getItem(LS_KEY); if(raw){ const o=JSON.parse(raw); if(o&&o.units){ UNITS=o.units; if(Array.isArray(o.managers)) MANAGERS=o.managers.slice(); if(Array.isArray(o.locations)) LOCATIONS=o.locations.slice(); if(Array.isArray(o.archive)) ARCHIVE=o.archive.slice(); if(typeof o.mgrSeed==='number') mgrSeedApplied=o.mgrSeed; loaded=true; } } }catch(e){}
+  try{ const raw=localStorage.getItem(LS_KEY); if(raw){ const o=JSON.parse(raw); if(o&&o.units){ UNITS=o.units; if(Array.isArray(o.managers)) MANAGERS=o.managers.slice(); if(Array.isArray(o.locations)) LOCATIONS=o.locations.slice(); if(Array.isArray(o.archive)) ARCHIVE=o.archive.slice(); if(typeof o.mgrSeed==='number') mgrSeedApplied=o.mgrSeed; if(typeof o.locSeed==='number') locSeedApplied=o.locSeed; loaded=true; } } }catch(e){}
   if(!loaded){ // migrate from earlier build's cache key if present
     try{ const old=localStorage.getItem('unittracker_cache'); if(old){ const c=JSON.parse(old); if(c&&c.units) UNITS=c.units; } }catch(e){}
   }
@@ -830,6 +834,8 @@ function loadLocal(){
   }
   mgrSeedApplied=MGR_SEED;
   if(!LOCATIONS.length) LOCATIONS=DEFAULT_LOCATIONS.slice();
+  else if(locSeedApplied<LOC_SEED) LOCATIONS=DEFAULT_LOCATIONS.slice();  // one-time reset to the current standard locations
+  locSeedApplied=LOC_SEED;
   normalizeUnits();
 }
 async function saveFile(){
@@ -846,15 +852,18 @@ function persist(){ if(VIEW_ONLY) return; saveLocal(); if(fileHandle) saveFile()
 
 /* ===== cloud sync (shared board via Firebase Realtime DB) ===== */
 let pendingRemote=null, lastPushCanon='';
-function canonState(o){ try{ return JSON.stringify({u:(o&&o.units)||{},m:(o&&o.managers)||[],l:(o&&o.locations)||[],a:(o&&o.archive)||[],s:(o&&o.mgrSeed)||0}); }catch(e){ return ''; } }
+function canonState(o){ try{ return JSON.stringify({u:(o&&o.units)||{},m:(o&&o.managers)||[],l:(o&&o.locations)||[],a:(o&&o.archive)||[],s:(o&&o.mgrSeed)||0,ls:(o&&o.locSeed)||0}); }catch(e){ return ''; } }
 function anyModalOpen(){ return !!document.querySelector('.overlay.show'); }
 function fbPush(){ if(VIEW_ONLY||!window.__fbWrite) return; const obj=dataObject(); lastPushCanon=canonState(obj); try{ window.__fbWrite(obj); }catch(e){ console.warn('fbPush',e); } }
 function applyRemoteState(v){
   try{
     UNITS = (v.units && typeof v.units==='object') ? v.units : {};
     MANAGERS = (Array.isArray(v.managers) && v.managers.length) ? v.managers.slice() : DEFAULT_MANAGERS.slice();
+    if(typeof v.locSeed==='number') locSeedApplied=v.locSeed;
     if(Array.isArray(v.locations)) LOCATIONS=v.locations.slice();
     if(!LOCATIONS.length) LOCATIONS=DEFAULT_LOCATIONS.slice();
+    else if(locSeedApplied<LOC_SEED) LOCATIONS=DEFAULT_LOCATIONS.slice();  // migrate an old shared list down to the standard locations
+    locSeedApplied=LOC_SEED;
     ARCHIVE = Array.isArray(v.archive) ? v.archive.slice() : [];
     if(typeof v.mgrSeed==='number') mgrSeedApplied=v.mgrSeed;
     normalizeUnits();
@@ -1168,26 +1177,38 @@ function pad2(n){ return String(n).padStart(2,'0'); }
 function isoOf(y,m,d){ return `${y}-${pad2(m+1)}-${pad2(d)}`; }
 
 /* every dated thing worth showing on the calendar */
+/* Calendar shows only the key DATES — a marker on each loan's start and end (return-due) day,
+   and a marker on each request's date(s) — not a highlight across the whole span. */
 function calendarEvents(){
   const evs=[];
   unitsArr().forEach(u=>{
     const label=(u.model||'?')+(u.serial?(' '+u.serial):'');
     if(u.status==='out'&&u.loan&&u.loan.start){
-      const end=u.loan.expiry||u.loan.start;
-      const overdue=u.loan.expiry&&daysUntil(u.loan.expiry)<0;
-      evs.push({start:u.loan.start,end,type:overdue?'overdue':'out',unitId:u.id,label,customer:u.loan.customer,manager:u.loan.manager});
+      const start=u.loan.start, end=u.loan.expiry||'';
+      evs.push({date:start,role:'start',kind:'out',unitId:u.id,label,customer:u.loan.customer,manager:u.loan.manager,start,end:end||start});
+      if(end&&end!==start){
+        const overdue=daysUntil(end)<0;
+        evs.push({date:end,role:'end',kind:overdue?'overdue':'out',unitId:u.id,label,customer:u.loan.customer,manager:u.loan.manager,start,end});
+      }
     }
     (u.reservations||[]).forEach(r=>{
       if(!r.start) return;
-      evs.push({start:r.start,end:addDaysISO(r.start,r.days),type:'request',unitId:u.id,label,customer:r.customer,manager:r.manager,notes:r.notes});
+      const end=addDaysISO(r.start,r.days);
+      evs.push({date:r.start,role:'start',kind:'request',unitId:u.id,label,customer:r.customer,manager:r.manager,notes:r.notes,start:r.start,end});
+      if(end&&end!==r.start){
+        evs.push({date:end,role:'end',kind:'request',unitId:u.id,label,customer:r.customer,manager:r.manager,notes:r.notes,start:r.start,end});
+      }
     });
-    if(u.status==='longterm'&&u.longterm&&u.longterm.since){
-      evs.push({start:u.longterm.since,end:u.longterm.since,type:'longterm',unitId:u.id,label,customer:u.longterm.holder,manager:u.longterm.manager});
-    }
   });
   return evs;
 }
-function dayEventsFor(iso,evs){ return (evs||calendarEvents()).filter(e=>e.start<=iso&&iso<=e.end); }
+function dayEventsFor(iso,evs){ return (evs||calendarEvents()).filter(e=>e.date===iso); }
+// short human label for a calendar marker (kind + start/end role)
+function calEvName(e){
+  if(e.kind==='request') return e.role==='end'?'Request end':'Request start';
+  if(e.kind==='overdue') return 'Return overdue';
+  return e.role==='end'?'Return due':'Loan start';
+}
 
 function renderCalendar(){
   if(calY==null) calInit();
@@ -1204,7 +1225,7 @@ function renderCalendar(){
     const shown=de.slice(0,3), more=de.length-shown.length;
     cells.push(`<div class="calcell${other?' other':''}${iso===today?' today':''}" data-calday="${iso}">
       <div class="dnum">${dt.getDate()}</div>
-      ${shown.map(e=>`<div class="calev ${e.type}" title="${esc(e.label)}">${esc(e.label)}</div>`).join('')}
+      ${shown.map(e=>`<div class="calev ${e.kind}${e.role==='end'?' isend':''}" title="${esc(calEvName(e)+': '+e.label+(e.customer?(' · '+e.customer):''))}">${e.role==='end'?'◂':'▸'} ${esc(e.label)}</div>`).join('')}
       ${more>0?`<div class="calmore">+${more} more</div>`:''}
     </div>`);
   }
@@ -1212,17 +1233,17 @@ function renderCalendar(){
 }
 
 function openDayModal(iso){
-  const de=dayEventsFor(iso).sort((a,b)=>a.type.localeCompare(b.type)||a.label.localeCompare(b.label));
+  const de=dayEventsFor(iso).sort((a,b)=>a.kind.localeCompare(b.kind)||a.label.localeCompare(b.label));
   $("#dayTitle").textContent=fmtDate(iso);
   const box=$("#dayList");
   if(!de.length){ box.innerHTML='<div class="hint">Nothing scheduled on this day.</div>'; }
   else box.innerHTML=de.map(e=>{
-    const tag=e.type==='request'?'Request':e.type==='longterm'?'Long-term start':e.type==='overdue'?'Out (overdue)':'Out on loan';
+    const tag=calEvName(e);
     const who=e.customer||'';
-    const range=(e.start===e.end)?'':(fmtDate(e.start)+' → '+fmtDate(e.end));
+    const range=(e.start&&e.end&&e.start!==e.end)?(fmtDate(e.start)+' → '+fmtDate(e.end)):'';
     const meta=[who,range,e.manager,e.notes].filter(Boolean).map(esc).join(' · ');
     return `<div class="dayrow">
-      <div><span class="calev ${e.type}" style="display:inline-block">${tag}</span> <b>${esc(e.label)}</b>
+      <div><span class="calev ${e.kind}${e.role==='end'?' isend':''}" style="display:inline-block">${tag}</span> <b>${esc(e.label)}</b>
       ${meta?`<div class="hint">${meta}</div>`:''}</div>
       <button class="btn ghost sm" data-dayopen="${e.unitId}">Open</button>
     </div>`;
@@ -1613,8 +1634,11 @@ function loadImported(text){
   if(!confirm('Replace everything currently on screen with the contents of this backup file?')) return;
   UNITS=units;
   MANAGERS = (o && Array.isArray(o.managers) && o.managers.length) ? o.managers.slice() : DEFAULT_MANAGERS.slice();
+  if(typeof (o&&o.locSeed)==='number') locSeedApplied=o.locSeed;
   if(o && Array.isArray(o.locations)) LOCATIONS=o.locations.slice();
   if(!LOCATIONS.length) LOCATIONS=DEFAULT_LOCATIONS.slice();
+  else if(locSeedApplied<LOC_SEED) LOCATIONS=DEFAULT_LOCATIONS.slice();  // reset an imported older list to the standard locations
+  locSeedApplied=LOC_SEED;
   ARCHIVE = (o && Array.isArray(o.archive)) ? o.archive.slice() : [];
   normalizeUnits();
   persist(); renderAll(); closeOverlay('#dataOverlay');
