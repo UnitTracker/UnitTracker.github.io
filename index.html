@@ -392,7 +392,7 @@ body.viewonly #dataBtn{display:none}
   <section id="tab-help" class="panel hide">
     <div class="help">
       <h2>What this is</h2>
-      <p class="lead">A loaner-unit tracker shared live with your team — everyone with the link sees the same board, updating in real time, and it's backed up to the cloud automatically every hour. <span class="tag">Version 3.6</span></p>
+      <p class="lead">A loaner-unit tracker shared live with your team — everyone with the link sees the same board, updating in real time, and it's backed up to the cloud automatically every hour. <span class="tag">Version 3.7</span></p>
 
       <h2>The tabs</h2>
       <div class="grid">
@@ -502,7 +502,7 @@ body.viewonly #dataBtn{display:none}
     </div>
   </section>
 
-  <footer id="footer">Loaner Unit Tracker · v3.6 · shared live board · auto-synced + hourly cloud backups + change log + phone viewer</footer>
+  <footer id="footer">Loaner Unit Tracker · v3.7 · shared live board · auto-synced + hourly cloud backups + change log + phone viewer</footer>
 </div>
 
 <!-- Add / Edit unit modal -->
@@ -536,9 +536,10 @@ body.viewonly #dataBtn{display:none}
       <div class="field"><label>Loan Start Date <span class="hint">(loan clock)</span></label><input id="l_start" type="date"></div>
       <div class="field"><label>Loan Expiry Date</label><input id="l_expiry" type="date"></div>
       <div class="field"><label>Date Left Office</label><input id="l_left" type="date"></div>
-      <div class="field"><label>Courier</label><select id="l_courier"><option value="">— select —</option><option>Purolator</option><option>FedEx</option><option>UPS</option><option>LTL</option><option>Customer</option></select></div>
+      <div class="field"><label>Courier</label><select id="l_courier"><option value="">— select —</option><option>Purolator</option><option>FedEx</option><option>UPS</option><option>LTL</option><option>Customer</option><option>Other</option></select></div>
       <div class="field"><label>Outgoing Waybill #</label><input id="l_waybill"></div>
     </div>
+    <div class="field" id="l_courierOtherWrap" style="display:none"><label>Courier name <span class="hint">(3rd-party courier)</span></label><input id="l_courierOther" placeholder="e.g. Canada Post, local messenger…"></div>
     <div class="field"><label>Comments</label><textarea id="l_comments" placeholder="Optional notes…"></textarea></div>
     <div class="modal-actions">
       <button class="btn ghost" data-close>Cancel</button>
@@ -575,8 +576,9 @@ body.viewonly #dataBtn{display:none}
       <div class="field"><label>Incoming Waybill #</label><input id="r_waybill"></div>
       <div class="field"><label>Date of Return</label><input id="r_date" type="date"></div>
       <div class="field"><label>Service Order #</label><input id="r_service"></div>
-      <div class="field"><label>Courier <span class="hint">(if different)</span></label><select id="r_courier"><option value="">— select —</option><option>Purolator</option><option>FedEx</option><option>UPS</option><option>LTL</option><option>Customer</option></select></div>
+      <div class="field"><label>Courier <span class="hint">(if different)</span></label><select id="r_courier"><option value="">— select —</option><option>Purolator</option><option>FedEx</option><option>UPS</option><option>LTL</option><option>Customer</option><option>Other</option></select></div>
     </div>
+    <div class="field" id="r_courierOtherWrap" style="display:none"><label>Courier name <span class="hint">(3rd-party courier)</span></label><input id="r_courierOther" placeholder="e.g. Canada Post, local messenger…"></div>
     <div class="field"><label>In-House Location <span class="hint">(where it's going now)</span></label><select id="r_location"></select></div>
     <div class="modal-actions">
       <button class="btn ghost" data-close>Cancel</button>
@@ -725,9 +727,11 @@ const esc=s=>String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;'
 const LS_KEY="unittracker_data";
 const DEFAULT_MANAGERS=['Rosemary Sonsini','Richard Bourbonniere','Jim Seto','Mo Russell','Errol Bailey','Martin Lindsay','Terry Irvin','Lauren Padua','Simon Wong','Shajal Jamal','Vanessa Wong'];
 const MGR_SEED=1;          // bump when new default managers ship; triggers a one-time merge into existing saved lists
-const DEFAULT_LOCATIONS=['Warehouse','Front Storage','Service Bench'];  // in-house spots offered in the location dropdown
-const LOC_SEED=1;          // bump to force a one-time RESET of every saved location list back to DEFAULT_LOCATIONS
-const COURIERS=['Purolator','FedEx','UPS','LTL','Customer'];
+const DEFAULT_LOCATIONS=['Warehouse','Demo Room'];  // in-house spots offered in the location dropdown
+const LOC_SEED=2;          // bump to force a one-time RESET of every saved location list back to DEFAULT_LOCATIONS
+const COURIERS=['Purolator','FedEx','UPS','LTL','Customer','Other'];
+// display a courier, resolving the free-text 3rd-party name when "Other" was chosen
+function courierText(c,other){ return c==='Other' ? (String(other||'').trim()||'Other') : (c||''); }
 const MONTHS=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
 let UNITS={};              // id -> unit
 let MANAGERS=[];           // account manager names (editable)
@@ -859,10 +863,10 @@ function applyRemoteState(v){
   try{
     UNITS = (v.units && typeof v.units==='object') ? v.units : {};
     MANAGERS = (Array.isArray(v.managers) && v.managers.length) ? v.managers.slice() : DEFAULT_MANAGERS.slice();
-    if(typeof v.locSeed==='number') locSeedApplied=v.locSeed;
+    const remoteLocSeed = (typeof v.locSeed==='number') ? v.locSeed : 0;   // treat a board with no seed as seed 0
     if(Array.isArray(v.locations)) LOCATIONS=v.locations.slice();
     if(!LOCATIONS.length) LOCATIONS=DEFAULT_LOCATIONS.slice();
-    else if(locSeedApplied<LOC_SEED) LOCATIONS=DEFAULT_LOCATIONS.slice();  // migrate an old shared list down to the standard locations
+    else if(remoteLocSeed<LOC_SEED) LOCATIONS=DEFAULT_LOCATIONS.slice();  // migrate an old shared list down to the standard locations (driven by the REMOTE seed, so a stale shared board actually resets)
     locSeedApplied=LOC_SEED;
     ARCHIVE = Array.isArray(v.archive) ? v.archive.slice() : [];
     if(typeof v.mgrSeed==='number') mgrSeedApplied=v.mgrSeed;
@@ -1068,7 +1072,7 @@ function renderOutTab(){
   const overdueOnly=$("#fOverdue").checked;
   let rows=outLoans();
   if(overdueOnly) rows=rows.filter(r=>r.loan.expiry&&daysUntil(r.loan.expiry)<0);
-  if(q) rows=rows.filter(r=>[r.u.model,r.u.serial,r.loan.customer,r.loan.manager,r.loan.waybill,r.loan.courier].some(v=>String(v||'').toLowerCase().includes(q)));
+  if(q) rows=rows.filter(r=>[r.u.model,r.u.serial,r.loan.customer,r.loan.manager,r.loan.waybill,r.loan.courier,r.loan.courierOther].some(v=>String(v||'').toLowerCase().includes(q)));
   rows.sort((a,b)=>(a.loan.entered||0)-(b.loan.entered||0));  // latest entry at the bottom
   const body=$("#outBody");
   if(!rows.length){ body.innerHTML=`<tr><td colspan="13" class="empty">Nothing out on short-term loan.</td></tr>`; return; }
@@ -1082,7 +1086,7 @@ function renderOutTab(){
       <td>${esc(loan.customer||'—')}</td>
       <td>${esc(loan.manager||'—')}</td>
       <td>${fmtDate(loan.left)}</td>
-      <td>${esc(loan.courier||'—')}</td>
+      <td>${esc(courierText(loan.courier,loan.courierOther)||'—')}</td>
       <td class="mono">${esc(loan.waybill||'—')}</td>
       <td>${fmtDate(loan.start)}</td>
       <td>${fmtDate(loan.expiry)}</td>
@@ -1159,7 +1163,7 @@ function renderReturnedTab(){
       <td class="name mono">${esc(u.serial||'—')}</td>
       <td>${esc(h.customer||'—')}</td>
       <td>${fmtDate(h.left)}</td>
-      <td>${esc(h.courier||'—')}</td>
+      <td>${esc(courierText(h.courier,h.courierOther)||'—')}</td>
       <td class="mono">${esc(h.waybill||'—')}</td>
       <td class="mono">${esc(h.inWaybill||'—')}</td>
       <td>${fmtDate(h.returned)}</td>
@@ -1408,6 +1412,8 @@ function openLoanModal(id){
   fillManagerSelect('#l_manager', L.manager||'');
   $("#l_left").value=L.left||todayISO();
   $("#l_courier").value=L.courier||'';
+  $("#l_courierOther").value=L.courierOther||'';
+  toggleCourierOther('#l_courier','#l_courierOtherWrap');
   $("#l_waybill").value=L.waybill||'';
   $("#l_start").value=L.start||todayISO();
   $("#l_expiry").value=L.expiry||'';
@@ -1418,7 +1424,7 @@ $("#l_save").addEventListener('click',()=>{
   const u=UNITS[loanUnitId]; if(!u) return;
   const wasOut=u.status==='out'&&u.loan;
   const prevEntered=(u.loan&&u.loan.entered)||null;   // keep original position when editing an existing loan
-  u.loan={ customer:$("#l_customer").value.trim(), manager:$("#l_manager").value, left:$("#l_left").value, courier:$("#l_courier").value.trim(),
+  u.loan={ customer:$("#l_customer").value.trim(), manager:$("#l_manager").value, left:$("#l_left").value, courier:$("#l_courier").value.trim(), courierOther:$("#l_courierOther").value.trim(),
     waybill:$("#l_waybill").value.trim(), start:$("#l_start").value, expiry:$("#l_expiry").value, comments:$("#l_comments").value.trim(),
     entered: prevEntered || Date.now() };
   u.status='out'; u.longterm=null;
@@ -1454,13 +1460,18 @@ function openReturnModal(id){
   returnUnitId=id; const u=UNITS[id]; if(!u||!u.loan) return;
   $("#returnUnitLabel").innerHTML=`<b>${esc(u.model||'')}</b> · ${esc(u.serial||'')} — to ${esc(u.loan.customer||'—')}`;
   $("#r_waybill").value=''; $("#r_date").value=todayISO(); $("#r_service").value=''; $("#r_courier").value=u.loan.courier||'';
+  $("#r_courierOther").value=u.loan.courierOther||'';
+  toggleCourierOther('#r_courier','#r_courierOtherWrap');
   fillLocationSelect('#r_location', u.location||'');
   openOverlay('#returnOverlay'); setTimeout(()=>$("#r_waybill").focus(),50);
 }
 $("#r_save").addEventListener('click',()=>{
   const u=UNITS[returnUnitId]; if(!u||!u.loan) return;
   const L=u.loan;
-  const rec={ customer:L.customer, manager:L.manager, left:L.left, courier:$("#r_courier").value.trim()||L.courier, waybill:L.waybill,
+  const selCourier=$("#r_courier").value.trim();
+  const courier = selCourier || L.courier;
+  const courierOther = selCourier ? $("#r_courierOther").value.trim() : (L.courierOther||'');
+  const rec={ customer:L.customer, manager:L.manager, left:L.left, courier:courier, courierOther:courierOther, waybill:L.waybill,
     start:L.start, expiry:L.expiry, comments:L.comments,
     inWaybill:$("#r_waybill").value.trim(), returned:$("#r_date").value||todayISO(), service:$("#r_service").value.trim() };
   u.history=u.history||[]; u.history.push(rec);
@@ -1470,6 +1481,10 @@ $("#r_save").addEventListener('click',()=>{
   logEvent('return', 'Returned in-house'+(fromCust?(' from '+fromCust):'')+(u.location?(' → '+u.location):''), unitLabel(u), u.id);
   toast('Marked returned');
 });
+// show/hide the free-text 3rd-party courier field when "Other" is chosen
+function toggleCourierOther(selId,wrapId){ const sel=$(selId), wrap=$(wrapId); if(!sel||!wrap) return; wrap.style.display = (sel.value==='Other') ? '' : 'none'; }
+$("#l_courier").addEventListener('change',()=>toggleCourierOther('#l_courier','#l_courierOtherWrap'));
+$("#r_courier").addEventListener('change',()=>toggleCourierOther('#r_courier','#r_courierOtherWrap'));
 
 /* reserve / request a loan */
 function updateResEnd(){
@@ -1542,7 +1557,7 @@ function performDelete(id, mode, reason){
     const at=todayISO(); let pushed=0;
     (u.history||[]).forEach(h=>{ ARCHIVE.push(Object.assign({},h,{model:u.model,serial:u.serial,reason:reason,archivedAt:at})); pushed++; });
     if(u.status==='out'&&u.loan){
-      ARCHIVE.push({model:u.model,serial:u.serial,customer:u.loan.customer,manager:u.loan.manager,left:u.loan.left,courier:u.loan.courier,waybill:u.loan.waybill,inWaybill:'',returned:at,service:'(removed while on loan)',start:u.loan.start,expiry:u.loan.expiry,comments:u.loan.comments,reason:reason,archivedAt:at}); pushed++;
+      ARCHIVE.push({model:u.model,serial:u.serial,customer:u.loan.customer,manager:u.loan.manager,left:u.loan.left,courier:u.loan.courier,courierOther:u.loan.courierOther,waybill:u.loan.waybill,inWaybill:'',returned:at,service:'(removed while on loan)',start:u.loan.start,expiry:u.loan.expiry,comments:u.loan.comments,reason:reason,archivedAt:at}); pushed++;
     } else if(u.status==='longterm'&&u.longterm){
       ARCHIVE.push({model:u.model,serial:u.serial,customer:u.longterm.holder,manager:u.longterm.manager,left:'',courier:'',waybill:'',inWaybill:'',returned:at,service:'(removed from long-term)',start:u.longterm.since,expiry:'',comments:u.longterm.notes,reason:reason,archivedAt:at}); pushed++;
     }
@@ -1709,7 +1724,7 @@ document.addEventListener('click',e=>{
     if(!confirm('Send this unit back out using the returned loan details? It will move from Returned back to Out on Loan.')) return;
     const h=(u.history||[])[+idx]; if(!h) return;
     u.history.splice(+idx,1);
-    u.loan={customer:h.customer,manager:h.manager,left:h.left,courier:h.courier,waybill:h.waybill,start:h.start,expiry:h.expiry,comments:h.comments,entered:Date.now()};
+    u.loan={customer:h.customer,manager:h.manager,left:h.left,courier:h.courier,courierOther:h.courierOther,waybill:h.waybill,start:h.start,expiry:h.expiry,comments:h.comments,entered:Date.now()};
     u.status='out'; persist(); renderAll(); logEvent('loan','Sent back out on loan (undo return)'+(h.customer?(' to '+h.customer):''),unitLabel(u),u.id); toast('Back out on loan');
   }
 });
@@ -1735,7 +1750,7 @@ $("#exportAll").addEventListener('click',()=>{
 });
 $("#exportOut").addEventListener('click',()=>{
   const rows=[['Model','Serial','Customer','Account Manager','Left Office','Courier','Waybill','Loan Start','Loan Expiry','Days Left','Open Requests','Comments']];
-  outLoans().forEach(({u,loan})=>rows.push([u.model,u.serial,loan.customer,loan.manager,fmtDate(loan.left),loan.courier,loan.waybill,fmtDate(loan.start),fmtDate(loan.expiry),loan.expiry?daysUntil(loan.expiry):'',(u.reservations||[]).length,loan.comments]));
+  outLoans().forEach(({u,loan})=>rows.push([u.model,u.serial,loan.customer,loan.manager,fmtDate(loan.left),courierText(loan.courier,loan.courierOther),loan.waybill,fmtDate(loan.start),fmtDate(loan.expiry),loan.expiry?daysUntil(loan.expiry):'',(u.reservations||[]).length,loan.comments]));
   download('out-on-loan.csv',csv(rows)); toast('Exported');
 });
 $("#exportLong").addEventListener('click',()=>{
@@ -1753,7 +1768,7 @@ $("#exportTFS").addEventListener('click',()=>{
 });
 $("#exportRet").addEventListener('click',()=>{
   const rows=[['Model','Serial','Customer','Account Manager','Left Office','Courier','Out Waybill','In Waybill','Date Returned','Service Order','Note']];
-  returnedRows().forEach(({h,archived})=>rows.push([h.model||'',h.serial||'',h.customer,h.manager,fmtDate(h.left),h.courier,h.waybill,h.inWaybill,fmtDate(h.returned),h.service,archived?('REMOVED: '+(h.reason||'')):'']));
+  returnedRows().forEach(({h,archived})=>rows.push([h.model||'',h.serial||'',h.customer,h.manager,fmtDate(h.left),courierText(h.courier,h.courierOther),h.waybill,h.inWaybill,fmtDate(h.returned),h.service,archived?('REMOVED: '+(h.reason||'')):'']));
   download('returned-units.csv',csv(rows)); toast('Exported');
 });
 $("#exportReq").addEventListener('click',()=>{
