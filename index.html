@@ -112,6 +112,17 @@ td.acts{white-space:nowrap}
 .savenote.show{opacity:1;transform:translateX(-50%) translateY(0)}
 footer{text-align:center;color:var(--muted);font-size:12px;padding:18px 0 8px}
 
+/* patch notes / what's new */
+.patchlist{display:flex;flex-direction:column;gap:10px;margin:4px 0 2px}
+.pn-entry{border:1px solid var(--line);border-radius:12px;padding:10px 12px;background:var(--panel2)}
+.pn-entry.pn-current{border-color:var(--accent);box-shadow:0 0 0 2px color-mix(in srgb,var(--accent) 30%,transparent)}
+.pn-head{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.pn-ver{font-weight:750;color:var(--accent);font-size:13px}
+.pn-ttl{font-weight:650;font-size:14px}
+.pn-date{margin-left:auto;color:var(--muted);font-size:12px}
+.pn-notes{margin:6px 0 0;padding-left:18px}
+.pn-notes li{font-size:13px;color:var(--muted);margin:2px 0}
+
 /* help / instructions */
 .help{max-width:840px}
 .help h2{font-size:15.5px;margin:24px 0 10px;padding-bottom:6px;border-bottom:1px solid var(--line);letter-spacing:-.2px}
@@ -392,7 +403,7 @@ body.viewonly #dataBtn{display:none}
   <section id="tab-help" class="panel hide">
     <div class="help">
       <h2>What this is</h2>
-      <p class="lead">A loaner-unit tracker shared live with your team — everyone with the link sees the same board, updating in real time, and it's backed up to the cloud automatically every hour. <span class="tag">Version 3.7</span></p>
+      <p class="lead">A loaner-unit tracker shared live with your team — everyone with the link sees the same board, updating in real time, and it's backed up to the cloud automatically every hour. <span class="tag">Version 9</span></p>
 
       <h2>The tabs</h2>
       <div class="grid">
@@ -499,10 +510,13 @@ body.viewonly #dataBtn{display:none}
         <li>The backup <code>loaner-data.json</code> is plain readable text, so treat that file and any USB like a confidential document.</li>
         <li>Keep the app in one place, and save a backup regularly (e.g. weekly, or after a busy day).</li>
       </ul>
+      <h2 style="margin-top:22px">🆕 Patch Notes</h2>
+      <p class="lead" style="margin-top:0">Current version: <b id="pnCurrent"></b> · newest first</p>
+      <div id="patchList" class="patchlist"></div>
     </div>
   </section>
 
-  <footer id="footer">Loaner Unit Tracker · v3.7 · shared live board · auto-synced + hourly cloud backups + change log + phone viewer</footer>
+  <footer id="footer">Loaner Unit Tracker · v9 · shared live board · auto-synced + hourly cloud backups + change log + phone viewer</footer>
 </div>
 
 <!-- Add / Edit unit modal -->
@@ -713,6 +727,17 @@ body.viewonly #dataBtn{display:none}
   </div>
 </div>
 
+<!-- What's New popup (reuses the standard overlay/modal) -->
+<div class="overlay" id="whatsnewOverlay">
+  <div class="modal" style="max-width:460px">
+    <h2 id="whatsnewHead">What’s new</h2>
+    <div id="whatsnewBody" class="patchlist" style="margin-top:12px"></div>
+    <div class="modal-actions">
+      <button class="btn" data-close>Got it</button>
+    </div>
+  </div>
+</div>
+
 <div class="savenote" id="savenote">Saved</div>
 
 <script>
@@ -724,6 +749,78 @@ body.viewonly #dataBtn{display:none}
 const $=s=>document.querySelector(s);
 const $$=s=>document.querySelectorAll(s);
 const esc=s=>String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+
+/* ============================================================
+   Patch notes / What's New  (shared convention across the apps)
+   APP_VERSION is an integer build number and MUST equal the sw.js
+   cache number (ut-shell-v9) — bump both together on every release.
+   ============================================================ */
+const APP_VERSION = 9;
+const APP_NAME = 'unittracker';                  // namespaces localStorage on the shared github.io origin
+const PATCH_NOTES = [                            // newest first; v = the APP_VERSION at that release
+  { v:9, date:'2026-09-21', title:'Patch notes & What’s New', notes:[
+      'Added a Patch Notes list (here in Help) showing every past update, newest first.',
+      'A one-time “What’s New” popup now appears once after each update.'
+  ]},
+  { v:8, date:'2026-09-17', title:'Location fix & “Other” courier', notes:[
+      'Fixed the shared board so in-house locations correctly become Warehouse / Demo Room.',
+      'Added an “Other” courier option with a box to name the third-party courier.'
+  ]},
+  { v:7, date:'2026-09-04', title:'Simpler locations & calendar', notes:[
+      'Restricted in-house locations and simplified the Requests calendar.'
+  ]},
+  { v:6, date:'2026-08-21', title:'Phone viewer app', notes:[
+      'Added an installable, read-only phone view (open with ?view).'
+  ]},
+  { v:5, date:'2026-08-21', title:'Change-log tab', notes:[
+      'Added the Tracker tab — a live, searchable audit log of every change.'
+  ]},
+  { v:4, date:'2026-08-21', title:'Requests calendar', notes:[
+      'Added the Requests tab with a colour-coded month calendar of loans and reservations.'
+  ]},
+  { v:3, date:'2026-08-19', title:'Hourly cloud backups', notes:[
+      'Added automatic hourly snapshots of the shared board with one-click restore.'
+  ]},
+  { v:2, date:'2026-08-18', title:'Shared live sync', notes:[
+      'The board now syncs live for everyone with the link via the cloud.'
+  ]},
+  { v:1, date:'2026-08-18', title:'First release', notes:[
+      'Initial shared loaner-unit tracker.'
+  ]},
+];
+const LSV_KEY = APP_NAME + '_lastSeenVer';
+function pnGet(){ try{ return localStorage.getItem(LSV_KEY); }catch(_){ return null; } }
+function pnSet(v){ try{ localStorage.setItem(LSV_KEY, String(v)); }catch(_){ } }
+/* one entry -> HTML; the SAME renderer feeds both the Help list and the popup */
+function pnEntryHTML(e, isCurrent){
+  const bullets=(e.notes||[]).map(n=>'<li>'+esc(n)+'</li>').join('');
+  return '<div class="pn-entry'+(isCurrent?' pn-current':'')+'">'
+    +   '<div class="pn-head"><span class="pn-ver">v'+esc(String(e.v))+'</span>'
+    +   '<span class="pn-ttl">'+esc(e.title)+'</span>'
+    +   '<span class="pn-date">'+esc(e.date)+'</span></div>'
+    +   '<ul class="pn-notes">'+bullets+'</ul></div>';
+}
+function pnRender(list){ return list.map(e=>pnEntryHTML(e, e.v===APP_VERSION)).join(''); }
+function renderPatchNotes(){
+  const box=$('#patchList'); if(box) box.innerHTML=pnRender(PATCH_NOTES);
+  const cur=$('#pnCurrent'); if(cur) cur.textContent='v'+APP_VERSION;
+}
+/* one-time popup — called exactly once at boot, after the normal render */
+function checkWhatsNew(freshInstall){
+  if(freshInstall){ pnSet(APP_VERSION); return; }        // brand-new install: record silently, no popup
+  let last=null; const raw=pnGet();
+  if(raw!=null){ const n=parseInt(raw,10); if(!isNaN(n)) last=n; }
+  let show;
+  if(last==null) show=PATCH_NOTES.slice(0,1);             // pre-feature user: show only the latest
+  else if(last<APP_VERSION) show=PATCH_NOTES.filter(e=>e.v>last);  // delta since last seen
+  else return;                                            // already up to date
+  if(!show.length){ pnSet(APP_VERSION); return; }
+  pnSet(APP_VERSION);                                     // mark seen the moment it's shown (so it appears once)
+  const body=$('#whatsnewBody'); if(body) body.innerHTML=pnRender(show);
+  const head=$('#whatsnewHead'); if(head) head.textContent = show.length>1 ? 'What’s new' : 'What’s new — v'+APP_VERSION;
+  openOverlay('#whatsnewOverlay');
+}
+
 const LS_KEY="unittracker_data";
 const DEFAULT_MANAGERS=['Rosemary Sonsini','Richard Bourbonniere','Jim Seto','Mo Russell','Errol Bailey','Martin Lindsay','Terry Irvin','Lauren Padua','Simon Wong','Shajal Jamal','Vanessa Wong'];
 const MGR_SEED=1;          // bump when new default managers ship; triggers a one-time merge into existing saved lists
@@ -1854,12 +1951,15 @@ function setupPWA(){
 }
 
 /* boot */
+let __freshInstall=false;   // capture BEFORE anything writes our data key
+try{ __freshInstall = (localStorage.getItem(LS_KEY)==null); }catch(_){ __freshInstall=false; }
 loadLocal();
 loadAuditLocal();   // show the cached change-log instantly (cloud watch refreshes it)
 if(!VIEW_ONLY) saveLocal();   // persist any one-time manager merge / migration (never write from a viewer)
 if(VIEW_ONLY) setupViewMode();
 renderAll();
 setFilePill('local');
+if(!VIEW_ONLY){ renderPatchNotes(); checkWhatsNew(__freshInstall); }   // one-time popup, once, after render
 // keep the shared change-log trimmed to the newest ~1,000 entries (editors only)
 if(!VIEW_ONLY){
   setTimeout(()=>{ if(window.__fbAuditPrune) window.__fbAuditPrune(1000); }, 30000);
