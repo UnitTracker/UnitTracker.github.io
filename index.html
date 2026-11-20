@@ -755,9 +755,13 @@ const esc=s=>String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;'
    APP_VERSION is an integer build number and MUST equal the sw.js
    cache number (ut-shell-v9) — bump both together on every release.
    ============================================================ */
-const APP_VERSION = 9;
+const APP_VERSION = 10;
 const APP_NAME = 'unittracker';                  // namespaces localStorage on the shared github.io origin
 const PATCH_NOTES = [                            // newest first; v = the APP_VERSION at that release
+  { v:10, date:'2026-11-19', title:'Loan out straight from a request', notes:[
+      'Added a “Loan out” button on every loan request — in the calendar day view, the Requests list, and a unit’s request popup — that opens the Loan Out form already filled in from the request.',
+      'When you loan out from a request, that request is cleared automatically, so you no longer have to delete it by hand.'
+  ]},
   { v:9, date:'2026-09-21', title:'Patch notes & What’s New', notes:[
       'Added a Patch Notes list (here in Help) showing every past update, newest first.',
       'A one-time “What’s New” popup now appears once after each update.'
@@ -838,6 +842,7 @@ let mgrSeedApplied=0;      // which MGR_SEED has been merged into the stored man
 let locSeedApplied=0;      // which LOC_SEED has been applied to the stored location list
 let activeTab="all";
 let editingUnitId=null, loanUnitId=null, returnUnitId=null, ltUnitId=null, reserveUnitId=null, deleteUnitId=null;
+let loanFromRes=null;   // when a loan is being created from a calendar/list request, remember it to clear on save
 let fileHandle=null;       // linked backup file (File System Access API)
 const HAS_FSA = !!(window.showSaveFilePicker && window.showOpenFilePicker);
 
@@ -1295,9 +1300,9 @@ function calendarEvents(){
     (u.reservations||[]).forEach(r=>{
       if(!r.start) return;
       const end=addDaysISO(r.start,r.days);
-      evs.push({date:r.start,role:'start',kind:'request',unitId:u.id,label,customer:r.customer,manager:r.manager,notes:r.notes,start:r.start,end});
+      evs.push({date:r.start,role:'start',kind:'request',unitId:u.id,rid:r.id,label,customer:r.customer,manager:r.manager,notes:r.notes,start:r.start,end});
       if(end&&end!==r.start){
-        evs.push({date:end,role:'end',kind:'request',unitId:u.id,label,customer:r.customer,manager:r.manager,notes:r.notes,start:r.start,end});
+        evs.push({date:end,role:'end',kind:'request',unitId:u.id,rid:r.id,label,customer:r.customer,manager:r.manager,notes:r.notes,start:r.start,end});
       }
     });
   });
@@ -1343,10 +1348,18 @@ function openDayModal(iso){
     const who=e.customer||'';
     const range=(e.start&&e.end&&e.start!==e.end)?(fmtDate(e.start)+' → '+fmtDate(e.end)):'';
     const meta=[who,range,e.manager,e.notes].filter(Boolean).map(esc).join(' · ');
+    let acts;
+    if(e.kind==='request'){
+      acts=`<button class="btn sm" data-loanres="${e.unitId}:${e.rid}">Loan out</button>`
+          +`<button class="btn ghost sm" data-dayopen="${e.unitId}">Request…</button>`;
+    } else {
+      acts=`<button class="btn ok sm" data-return="${e.unitId}">Return</button>`
+          +`<button class="btn ghost sm" data-editloan="${e.unitId}">Loan…</button>`;
+    }
     return `<div class="dayrow">
       <div><span class="calev ${e.kind}${e.role==='end'?' isend':''}" style="display:inline-block">${tag}</span> <b>${esc(e.label)}</b>
       ${meta?`<div class="hint">${meta}</div>`:''}</div>
-      <button class="btn ghost sm" data-dayopen="${e.unitId}">Open</button>
+      <div class="rowacts">${acts}</div>
     </div>`;
   }).join('');
   openOverlay('#dayOverlay');
@@ -1370,6 +1383,7 @@ function renderReqList(){
       <div><b>${esc(u.model||'—')}</b> <span class="mono hint">${esc(u.serial||'')}</span> ${active?'<span class="badge out">ACTIVE</span>':''}
       <div class="hint">${meta}</div></div>
       <div class="rowacts">
+        ${u.status==='in'?`<button class="btn sm" data-loanres="${u.id}:${r.id}" title="Create the outgoing loan from this request">Loan out</button>`:''}
         <button class="btn info sm" data-reserve="${u.id}">View</button>
         <button class="btn danger sm" data-resdel="${u.id}:${r.id}">✕</button>
       </div>
@@ -1500,22 +1514,33 @@ $("#u_save").addEventListener('click',()=>{
 });
 
 /* short-term loan */
-function openLoanModal(id){
+function openLoanModal(id, fromReq){
   loanUnitId=id; const u=UNITS[id]; if(!u) return;
+  loanFromRes = (fromReq&&fromReq.rid) ? {unitId:id, rid:fromReq.rid} : null;   // reset on every open
+  const pf = (fromReq&&fromReq.prefill) ? fromReq.prefill : {};
   const isEdit=u.status==='out'&&u.loan;
   $("#loanUnitLabel").innerHTML=`<b>${esc(u.model||'')}</b> · ${esc(u.serial||'')}`;
   const L=isEdit?u.loan:{};
-  $("#l_customer").value=L.customer||'';
-  fillManagerSelect('#l_manager', L.manager||'');
+  $("#l_customer").value=pf.customer!=null?pf.customer:(L.customer||'');
+  fillManagerSelect('#l_manager', pf.manager!=null?pf.manager:(L.manager||''));
   $("#l_left").value=L.left||todayISO();
   $("#l_courier").value=L.courier||'';
   $("#l_courierOther").value=L.courierOther||'';
   toggleCourierOther('#l_courier','#l_courierOtherWrap');
   $("#l_waybill").value=L.waybill||'';
-  $("#l_start").value=L.start||todayISO();
-  $("#l_expiry").value=L.expiry||'';
-  $("#l_comments").value=L.comments||'';
+  $("#l_start").value=pf.start||L.start||todayISO();
+  $("#l_expiry").value=pf.expiry||L.expiry||'';
+  $("#l_comments").value=pf.comments!=null?pf.comments:(L.comments||'');
   openOverlay('#loanOverlay'); setTimeout(()=>$("#l_customer").focus(),50);
+}
+// Convert a reservation/request into an outgoing loan: open the Loan Out modal pre-filled from the request.
+function loanOutFromReservation(unitId, rid){
+  const u=UNITS[unitId]; if(!u) return;
+  if(u.status==='out'){ toast('Already out on loan — return it first'); return; }
+  if(u.status==='longterm'){ toast('On a long-term loan — end it first'); return; }
+  const r=(u.reservations||[]).find(x=>x.id===rid);
+  const prefill = r ? {customer:r.customer||'', manager:r.manager||'', start:r.start||todayISO(), expiry:(r.start?addDaysISO(r.start,r.days):''), comments:r.notes||''} : {};
+  openLoanModal(unitId, {rid:rid, prefill});
 }
 $("#l_save").addEventListener('click',()=>{
   const u=UNITS[loanUnitId]; if(!u) return;
@@ -1525,9 +1550,16 @@ $("#l_save").addEventListener('click',()=>{
     waybill:$("#l_waybill").value.trim(), start:$("#l_start").value, expiry:$("#l_expiry").value, comments:$("#l_comments").value.trim(),
     entered: prevEntered || Date.now() };
   u.status='out'; u.longterm=null;
+  let fulfilled=false;
+  if(loanFromRes && loanFromRes.unitId===u.id){                 // created from a request → clear that request
+    const before=(u.reservations||[]).length;
+    u.reservations=(u.reservations||[]).filter(r=>r.id!==loanFromRes.rid);
+    fulfilled=(u.reservations||[]).length<before;
+  }
+  loanFromRes=null;
   persist(); closeOverlay('#loanOverlay'); renderAll();
-  logEvent('loan', wasOut?'Updated loan details':('Loaned out to '+(u.loan.customer||'a customer')+(u.loan.expiry?(' · due '+fmtDate(u.loan.expiry)):'')), unitLabel(u), u.id);
-  toast('Loaned out');
+  logEvent('loan', wasOut?'Updated loan details':('Loaned out to '+(u.loan.customer||'a customer')+(u.loan.expiry?(' · due '+fmtDate(u.loan.expiry)):'')+(fulfilled?' · from a request':'')), unitLabel(u), u.id);
+  toast(fulfilled?'Loaned out · request cleared':'Loaned out');
 });
 
 /* long-term loan */
@@ -1597,7 +1629,7 @@ function renderReserveList(){
         return `<div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px;border:1px solid var(--line);border-radius:9px;padding:8px 10px;margin-bottom:6px">
           <div><b>${fmtDate(r.start)} → ${fmtDate(end)}</b> <span class="hint">(${r.days} day${r.days==1?'':'s'})</span><br>
           <span class="hint">${esc(r.customer||'—')}${r.manager?(' · '+esc(r.manager)):''}${r.notes?(' · '+esc(r.notes)):''}</span></div>
-          <button class="btn danger sm" data-resdel="${u.id}:${r.id}">✕</button></div>`;
+          <div class="rowacts">${u.status==='in'?`<button class="btn sm" data-loanres="${u.id}:${r.id}">Loan out</button>`:''}<button class="btn danger sm" data-resdel="${u.id}:${r.id}">✕</button></div></div>`;
       }).join('')
     : '<div class="hint">No requests yet.</div>';
 }
@@ -1806,6 +1838,12 @@ document.addEventListener('click',e=>{
   }
   if(b.dataset.locdel){
     const vals=locInputVals(); vals.splice(+b.dataset.locdel,1); renderLocationRows(vals);
+    return;
+  }
+  if(b.dataset.loanres){
+    const [id,rid]=b.dataset.loanres.split(':');
+    closeOverlay('#dayOverlay'); closeOverlay('#reserveOverlay');
+    loanOutFromReservation(id,rid);
     return;
   }
   if(b.dataset.dayopen){ closeOverlay('#dayOverlay'); openReserveModal(b.dataset.dayopen); return; }
