@@ -755,9 +755,13 @@ const esc=s=>String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;'
    APP_VERSION is an integer build number and MUST equal the sw.js
    cache number (ut-shell-v9) — bump both together on every release.
    ============================================================ */
-const APP_VERSION = 10;
+const APP_VERSION = 11;
 const APP_NAME = 'unittracker';                  // namespaces localStorage on the shared github.io origin
 const PATCH_NOTES = [                            // newest first; v = the APP_VERSION at that release
+  { v:11, date:'2026-11-19', title:'Linked with the Shelf Tracker', notes:[
+      'After you loan out a unit, the app can open the Shelf Tracker and offer to remove the matching unit from the shelf.',
+      'Units are matched by serial number.'
+  ]},
   { v:10, date:'2026-11-19', title:'Loan out straight from a request', notes:[
       'Added a “Loan out” button on every loan request — in the calendar day view, the Requests list, and a unit’s request popup — that opens the Loan Out form already filled in from the request.',
       'When you loan out from a request, that request is cleared automatically, so you no longer have to delete it by hand.'
@@ -1560,7 +1564,18 @@ $("#l_save").addEventListener('click',()=>{
   persist(); closeOverlay('#loanOverlay'); renderAll();
   logEvent('loan', wasOut?'Updated loan details':('Loaned out to '+(u.loan.customer||'a customer')+(u.loan.expiry?(' · due '+fmtDate(u.loan.expiry)):'')+(fulfilled?' · from a request':'')), unitLabel(u), u.id);
   toast(fulfilled?'Loaned out · request cleared':'Loaned out');
+  // Offer to remove the matching unit from the Shelf Tracker (only for brand-new loans with a serial)
+  if(!wasOut) offerShelfRemoval(u);
 });
+// Deep link into the Shelf Tracker demo-unit board: "this unit went out — remove it from the shelf too".
+const SHELF_TRACKER_URL='https://inventory-storage-system.github.io/';
+function offerShelfRemoval(u){
+  const serial=(u&&u.serial||'').trim(); if(!serial) return;
+  if(!confirm('Also remove this unit from the shelf in the Shelf Tracker?\n\n'+((u.model||'')+' · '+serial).trim())) return;
+  const url=SHELF_TRACKER_URL+'?loanout='+encodeURIComponent(serial)+'&model='+encodeURIComponent(u.model||'')+'&to='+encodeURIComponent((u.loan&&u.loan.customer)||'');
+  const w=window.open(url,'_blank','noopener');
+  if(!w) toast('Pop-up blocked — allow pop-ups to open the Shelf Tracker');
+}
 
 /* long-term loan */
 function openLongTermModal(id){

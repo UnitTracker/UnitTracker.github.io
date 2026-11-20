@@ -2,7 +2,7 @@
    Strategy: network-first for the app shell (so a new deploy is picked up when online),
    with a cached fallback so the app still opens offline. Cross-origin requests
    (Firebase SDK + live data) are left untouched and go straight to the network. */
-const CACHE = 'ut-shell-v10';
+const CACHE = 'ut-shell-v11';
 
 self.addEventListener('install', e => {
   self.skipWaiting();
